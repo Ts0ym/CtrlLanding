@@ -13,11 +13,22 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    position: static;
+    inset: auto;
+    overflow: visible;
+    min-height: 0;
+  }
 }
 
 .smoothContent {
   /* ScrollSmoother transforms this element */
   will-change: transform;
+
+  @media (max-width: 768px) {
+    will-change: auto;
+  }
 }
 
 .main {
@@ -46,7 +57,10 @@
 
 .footerBg {
   bottom: 0;
-  height: calc(var(--pad-bottom) + var(--rule-thickness));
+  height: calc(
+    var(--pad-bottom) + var(--rule-thickness) +
+      env(safe-area-inset-bottom, 0px)
+  );
 }
 
 .topLineLeft,
@@ -156,7 +170,7 @@
 }
 
 .bottomLineLeft {
-  bottom: var(--pad-bottom);
+  bottom: calc(var(--pad-bottom) + env(safe-area-inset-bottom, 0px));
   left: var(--pad);
   right: calc(66.6667% + 0.3125rem);
 
@@ -167,7 +181,7 @@
 }
 
 .bottomLineRight {
-  bottom: var(--pad-bottom);
+  bottom: calc(var(--pad-bottom) + env(safe-area-inset-bottom, 0px));
   left: calc(var(--col-split) + 0.625rem);
   right: var(--pad);
 

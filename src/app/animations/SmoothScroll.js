@@ -7,6 +7,8 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
+const MOBILE_BREAKPOINT = "(max-width: 768px)";
+
 export default function SmoothScroll() {
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -18,17 +20,20 @@ export default function SmoothScroll() {
     ScrollTrigger.clearScrollMemory("manual");
     window.scrollTo(0, 0);
 
-    // Create (or recreate) the singleton smoother
-    const smoother = ScrollSmoother.create({
-      wrapper: "#smooth-wrapper",
-      content: "#smooth-content",
-      smooth: 1.6,
-      smoothTouch: 0.2,
-      effects: false,
-    });
+    const isMobile = window.matchMedia(MOBILE_BREAKPOINT).matches;
+    let smoother = null;
 
-    // Ensure we're truly at the top after smoother attaches
-    smoother.scrollTop(0);
+    if (!isMobile) {
+      smoother = ScrollSmoother.create({
+        wrapper: "#smooth-wrapper",
+        content: "#smooth-content",
+        smooth: 1.6,
+        smoothTouch: 0,
+        effects: false,
+      });
+      smoother.scrollTop(0);
+    }
+
     ScrollTrigger.refresh();
 
     return () => {

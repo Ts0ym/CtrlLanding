@@ -84,6 +84,13 @@
     justify-content: flex-start;
   }
 
+  @media (max-width: 768px) {
+    bottom: calc(
+      var(--pad-bottom) + var(--rule-thickness) + 3rem +
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+
   @media (max-width: 640px) {
     left: 0;
     right: var(--pad);
@@ -103,6 +110,10 @@
   max-height: min(58vh, calc(100vh - 14rem));
   height: auto;
   display: block;
+
+  @media (max-width: 768px) {
+    max-height: min(42dvh, calc(100dvh - 12rem));
+  }
 
   @media (max-width: 640px) {
     width: min(92vw, 40rem);
