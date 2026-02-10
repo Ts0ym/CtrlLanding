@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import gsap from "gsap";
 import styles from "./PortfolioViewerOverlay.module.scss";
 import PortfolioPreviewCard from "./PortfolioPreviewCard";
+import { getAssetUrl } from "../lib/assetUrl";
 
 function clampIndex(i, len) {
   if (len <= 0) return 0;
@@ -107,7 +108,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
         ratios[idx] = 16 / 9;
         completeOne();
       };
-      img.src = src;
+      img.src = getAssetUrl(src);
     });
 
     return () => {
@@ -495,7 +496,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
                 <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
                   <div
                     className={styles.mediaInner}
-                    style={{ backgroundImage: `url(${c?.imageSrc})` }}
+                    style={{ backgroundImage: `url(${getAssetUrl(c?.imageSrc || "")})` }}
                   >
                   </div>
                 </div>
@@ -542,7 +543,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             >
               <img
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-                src="/svg/arrow.svg"
+                src={getAssetUrl("/svg/arrow.svg")}
                 alt=""
                 aria-hidden="true"
               />
@@ -564,7 +565,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             </span>
               <img
                 className={`${styles.btnIcon} ${styles.btnIconRight}`}
-                src="/svg/arrow.svg"
+                src={getAssetUrl("/svg/arrow.svg")}
                 alt=""
                 aria-hidden="true"
               />
@@ -575,7 +576,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
         <button type="button" className={styles.backBtn} onClick={handleClose}>
           <img
             className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-            src="/svg/arrow.svg"
+            src={getAssetUrl("/svg/arrow.svg")}
             alt=""
             aria-hidden="true"
           />

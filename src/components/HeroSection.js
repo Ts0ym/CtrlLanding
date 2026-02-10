@@ -1,4 +1,5 @@
 import styles from "./HeroSection.module.scss";
+import { getAssetUrl } from "../lib/assetUrl";
 
 export default function HeroSection() {
   return (
@@ -27,7 +28,7 @@ export default function HeroSection() {
             className={styles.logo}
             data-anim="logo"
             data-scroll="hero-out"
-            src="/svg/ctrl..svg"
+            src={getAssetUrl("/svg/ctrl..svg")}
             alt=""
           />
         </div>
