@@ -2,6 +2,12 @@
   min-height: 100vh;
 }
 
+:global(:root) {
+  @media (max-width: 900px) {
+    --col-split: 42%;
+  }
+}
+
 .smoothWrapper {
   /* Required structure for ScrollSmoother (viewport wrapper) */
   position: fixed;
@@ -32,6 +38,10 @@
 .headerBg {
   top: 0;
   height: calc(var(--pad) + var(--header-shift) + var(--rule-thickness));
+
+  @media (max-width: 800px) {
+    height: calc(var(--pad) + 2.4rem + var(--rule-thickness));
+  }
 }
 
 .footerBg {
@@ -63,7 +73,7 @@
 }
 
 .headerLogoImg {
-  height: 1.7rem; /* ~44px */
+  height: 1.7rem;
   width: auto;
   display: block;
   opacity: 0.95;
@@ -88,6 +98,14 @@
   cursor: pointer;
   transition: top 0.3s ease;
   overflow: visible;
+
+  @media (max-width: 1200px) {
+    display: flex;
+  }
+
+  @media (max-width: 800px) {
+    top: var(--pad);
+  }
 }
 
 .burgerLine {
@@ -115,36 +133,66 @@
 .topLineLeft {
   top: calc(var(--pad) + var(--header-shift));
   left: var(--pad);
-  right: calc(66.6667% + 0.3125rem); /* +5px */
+  right: calc(66.6667% + 0.3125rem);
+
+  @media (max-width: 1200px) {
+    left: var(--pad);
+    right: var(--pad);
+  }
+
+  @media (max-width: 800px) {
+    top: calc(var(--pad) + 2.4rem);
+  }
 }
 
 .topLineRight {
   top: calc(var(--pad) + var(--header-shift));
-  left: calc(var(--col-split) + 0.6875rem); /* +11px */
+  left: calc(var(--col-split) + 0.6875rem);
   right: var(--pad);
+
+  @media (max-width: 1200px) {
+    display: none;
+  }
 }
 
 .bottomLineLeft {
   bottom: var(--pad-bottom);
   left: var(--pad);
-  right: calc(66.6667% + 0.3125rem); /* +5px */
+  right: calc(66.6667% + 0.3125rem);
+
+  @media (max-width: 1200px) {
+    left: var(--pad);
+    right: var(--pad);
+  }
 }
 
 .bottomLineRight {
   bottom: var(--pad-bottom);
-  left: calc(var(--col-split) + 0.625rem); /* +10px */
+  left: calc(var(--col-split) + 0.625rem);
   right: var(--pad);
+
+  @media (max-width: 1200px) {
+    display: none;
+  }
 }
 
 .menu {
   position: fixed;
   left: var(--pad);
   bottom: var(--dock-bottom);
-  width: calc(var(--col-split) - var(--pad) - 1.8125rem); /* -29px */
-  max-width: clamp(24rem, 22vw, 36rem); /* 384px..576px */
+  width: calc(var(--col-split) - var(--pad) - 1.8125rem);
+  max-width: clamp(24rem, 22vw, 36rem);
   font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
     serif;
   z-index: 11;
+
+  @media (max-width: 1200px) {
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    width: min(26.25rem, calc(var(--col-split) - var(--pad)));
+  }
 }
 
 .menuTitle {
@@ -153,11 +201,11 @@
   font-weight: 400;
   font-size: clamp(1.75rem, 1.6vw, 2.75rem);
   line-height: 1;
-  letter-spacing: -0.045rem; /* -0.72px */
+  letter-spacing: -0.045rem;
 }
 
 .menuTitleCn {
-  font-size: 0.8333em; /* 20px vs 24px in Figma */
+  font-size: 0.8333em;
   font-style: normal;
   font-weight: 300;
 }
@@ -180,9 +228,9 @@
   gap: 0;
   font-style: italic;
   font-weight: 500;
-  font-size: clamp(0.875rem, 0.9vw, 1.25rem); /* 14px..20px */
+  font-size: clamp(0.875rem, 0.9vw, 1.25rem);
   line-height: 1.25;
-  letter-spacing: -0.0225rem; /* -0.36px */
+  letter-spacing: -0.0225rem;
 }
 
 .menuCn {
@@ -241,43 +289,16 @@
   background: transparent;
   border: 0;
   padding: 0;
+
+  @media (max-width: 1200px){
+    display: none;
+  }
 }
 
 .scrollHintIcon {
-  width: 0.9375rem; /* 15px */
-  height: 1rem; /* 16px */
+  width: 0.9375rem;
+  height: 1rem;
   display: block;
-}
-
-@media (max-width: 900px) {
-  :root {
-    --col-split: 42%;
-  }
-
-  .menu {
-    width: min(26.25rem, calc(var(--col-split) - var(--pad))); /* 420px */
-  }
-}
-
-@media (max-width: 1200px) {
-  .menu {
-    display: none;
-  }
-
-  .topLineRight,
-  .bottomLineRight {
-    display: none;
-  }
-
-  .topLineLeft,
-  .bottomLineLeft {
-    left: var(--pad);
-    right: var(--pad);
-  }
-
-  .burger {
-    display: flex;
-  }
 }
 
 /* Header state: hero | expanded | menu-open
@@ -354,10 +375,18 @@
 
 :global(body[data-header-state="menu-open"].menu-closing) .headerBg {
   height: calc(var(--pad) + var(--header-shift) + var(--rule-thickness));
+
+  @media (max-width: 800px) {
+    height: calc(var(--pad) + 2.4rem + var(--rule-thickness));
+  }
 }
 
 :global(body[data-header-state="menu-open"].menu-closing) .topLineLeft {
   top: calc(var(--pad) + var(--header-shift));
+
+  @media (max-width: 800px) {
+    top: calc(var(--pad) + 2.4rem);
+  }
 }
 
 @keyframes menuFadeIn {

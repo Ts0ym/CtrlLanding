@@ -86,6 +86,9 @@ export default function MenuNav() {
     if (!href) return;
 
     e.preventDefault();
+    window.dispatchEvent(new CustomEvent("mobile-menu:close"));
+    // Always close portfolio overlay before menu navigation.
+    window.dispatchEvent(new CustomEvent("portfolio-viewer:close"));
     setActiveHref(href);
 
     const smoother = ScrollSmoother.get?.();

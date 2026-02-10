@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "../app/layout.module.scss";
 
 export default function MobileMenuToggle() {
@@ -62,6 +62,24 @@ export default function MobileMenuToggle() {
       setOpen(true);
     }
   };
+
+  useEffect(() => {
+    const closeFromMenuNav = () => {
+      if (!open || isTransitioning) return;
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      setIsTransitioning(true);
+      document.body.classList.add("menu-closing");
+
+      closeTimeoutRef.current = setTimeout(() => {
+        closeTimeoutRef.current = null;
+        setOpen(false);
+        setIsTransitioning(false);
+      }, 300);
+    };
+
+    window.addEventListener("mobile-menu:close", closeFromMenuNav);
+    return () => window.removeEventListener("mobile-menu:close", closeFromMenuNav);
+  }, [open, isTransitioning]);
 
   return (
     <button

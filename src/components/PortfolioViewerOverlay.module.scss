@@ -13,6 +13,18 @@
   --preview-gap: clamp(1.125rem, 1.4cqi, 2rem);
   --preview-card: clamp(12.5rem, 14cqi, 16rem);
   --preview-count: 3;
+
+  @media (max-width: 900px) {
+    --preview-gap: clamp(0.75rem, 2vw, 1rem);
+    --preview-card: clamp(7.5rem, 28vw, 12rem);
+    --preview-count: 3;
+  }
+
+  @media (min-width: 1600px) {
+    --preview-card: clamp(9.5rem, 10.5cqi, 12rem);
+    --preview-gap: clamp(1.125rem, 1.4cqi, 2rem);
+    --preview-count: 4;
+  }
 }
 
 .wipe {
@@ -49,6 +61,16 @@
   background: var(--bg);
 }
 
+.overlayContentMax1200 {
+  @media (max-width: 1200px) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: var(--viewer-top) var(--pad) calc(var(--pad-bottom) + 6.5rem);
+    overflow-y: auto;
+  }
+}
+
 .rightCol {
   position: absolute;
   top: var(--viewer-top);
@@ -61,6 +83,26 @@
   min-height: 0;
   --preview-card-fit: var(--preview-card);
   --media-h: auto;
+
+  @media (max-width: 900px) {
+    left: var(--pad);
+    right: var(--pad);
+    width: auto;
+    top: 22rem;
+  }
+}
+
+.rightColMax1200 {
+  @media (max-width: 1200px) {
+    position: relative;
+    inset: auto;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    width: calc(100% + (var(--pad) * 2));
+    margin: 0 calc(var(--pad) * -1);
+  }
 }
 
 .info {
@@ -69,6 +111,12 @@
   left: var(--pad);
   /* End right before the landing-aligned right column */
   right: calc(100% - var(--viewer-right-left) + var(--viewer-cols-gap));
+
+  @media (max-width: 1200px) {
+    position: static;
+    inset: auto;
+    width: 100%;
+  }
 }
 
 .date {
@@ -90,10 +138,14 @@
   line-height: 2rem;
   letter-spacing: -0.045rem;
   white-space: pre-line;
+  @media (max-width: 1200px) {
+    font-size: 1.5rem;
+    line-height: 1.5rem;
+    letter-spacing: -0.045rem;
+  }
 }
 
 .desc {
-
   margin-top: clamp(1.25rem, 2.4cqi, 2rem);
   display: grid;
   gap: clamp(1.25rem, 2.6cqi, 2rem);
@@ -105,6 +157,16 @@
   font-size: 1rem;
   line-height: 1.2rem;
   letter-spacing: -0.0225rem;
+
+  @media (max-width: 1200px) {
+    width: 100%;
+    font-size: 0.9rem;
+    font-style: normal;
+    font-weight: 300;
+    line-height: 1rem; /* 100% */
+    letter-spacing: -0.03rem;
+    gap: 0.5rem;
+  }
 }
 
 .desc p {
@@ -115,11 +177,21 @@
   position: relative;
   width: 100%;
   height: var(--media-h);
-  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--media-aspect-ratio, 1.7777778);
   background: #111;
   border-radius: 0;
   overflow: hidden;
-  flex: 0 1 auto;
+  flex: 0 1 auto; 
+
+  @media (max-width: 1200px) {
+    background: transparent;
+    width: calc(100% - var(--pad) * 2);
+    margin: 0 auto;
+    height: auto;
+    max-height: 60vh;
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
+  }
 }
 
 .mediaTrack {
@@ -199,6 +271,14 @@
   position: fixed;
   bottom: 1.5rem;
   left: var(--pad);
+
+  @media (max-width: 1200px) {
+    position: static;
+    bottom: auto;
+    left: auto;
+    order: -1;
+    margin-bottom: 0.75rem;
+  }
 }
 
 .prevBtn {
@@ -210,6 +290,24 @@
   max-width: 28rem;
   text-align: right;
   justify-content: flex-end;
+}
+
+@media (max-width: 1200px) {
+  .prevBtn,
+  .nextBtn {
+    max-width: none;
+    gap: 0;
+  }
+
+  .prevBtn .btnText,
+  .nextBtn .btnText {
+    display: none;
+  }
+
+  .prevBtn .btnText::after,
+  .nextBtn .btnText::after {
+    content: none;
+  }
 }
 
 .btnText {
@@ -254,6 +352,35 @@
   justify-content: space-between;
   align-items: flex-end;
   gap: 1rem;
+
+  @media (max-width: 1200px) {
+    position: static;
+    inset: auto;
+    width: 100%;
+    padding: 0 var(--pad);
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .prevBtn,
+  .nextBtn {
+    width: 50%;
+    max-width: none;
+  }
+
+  .prevBtn {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .nextBtn {
+    justify-content: flex-end;
+    text-align: right;
+  }
 }
 
 .btnIcon {
@@ -271,48 +398,4 @@
   transform: rotate(-90deg);
 }
 
-@media (max-width: 900px) {
-  .overlay {
-    --preview-gap: clamp(0.75rem, 2vw, 1rem);
-    --preview-card: clamp(7.5rem, 28vw, 12rem);
-    --preview-count: 3;
-  }
-
-  .info {
-    right: var(--pad);
-  }
-
-  .rightCol {
-    left: var(--pad);
-    right: var(--pad);
-    width: auto;
-    top: 22rem;
-  }
-
-  .carouselActions {
-    flex-direction: column;
-    align-items: flex-start;
-    left: var(--pad);
-    right: var(--pad);
-    bottom: calc(var(--pad-bottom) + 3rem);
-  }
-
-  .backBtn {
-    bottom: calc(var(--pad-bottom) + 5.5rem);
-  }
-}
-
-@media (min-width: 1600px) {
-  .overlay {
-    --preview-card: clamp(9.5rem, 10.5cqi, 12rem);
-    --preview-gap: clamp(1.125rem, 1.4cqi, 2rem);
-  }
-}
-
-@media (min-width: 1600px) {
-  .overlay {
-    --preview-count: 4;
-  }
-
-}
 

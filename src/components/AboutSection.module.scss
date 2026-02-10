@@ -1,0 +1,83 @@
+.about {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.aboutHeadline {
+  position: absolute;
+  top: 5.25rem;
+  left: var(--pad);
+  //right: calc(66.6667% + 0.3125rem);
+  @media (max-width: 1200px){
+    top: 4.25rem;
+  }
+}
+
+.aboutHeadline p,
+.aboutBody p {
+  margin: 0;
+  overflow: hidden;
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}
+
+.aboutHeadline p > span,
+.aboutBody p > span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.aboutBody {
+  position: absolute;
+  bottom: var(--dock-bottom);
+  left: calc(var(--col-split) + 0.75rem);
+  right: var(--pad);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 3rem;
+  line-height: 3rem;
+  letter-spacing: -0.09rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  text-align: left;
+
+  @media (max-width: 1200px) {
+    left: var(--pad);
+    font-size: 2.8rem;
+  }
+
+  @media (max-width: 800px) {
+    font-size: 2.2rem;
+    line-height: 2.2rem;
+  }
+}
+
+.aboutBody p {
+  white-space: pre-wrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.aboutCn {
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
+  font-style: normal;
+  font-size: 2.625rem;
+  line-height: 2.8rem;
+  font-weight: 300;
+  letter-spacing: -0.07875rem;
+
+  @media (max-width: 800px) {
+    font-size: 1.8rem;
+    line-height: 2rem;
+  }
+}
+

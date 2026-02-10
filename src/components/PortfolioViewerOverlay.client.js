@@ -23,9 +23,16 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const WIPE_DURATION = 0.5;
   const MASK_DURATION = 0.5;
   const [mounted, setMounted] = useState(false);
+  const [isMax1200, setIsMax1200] = useState(false);
+  const [mediaAspectRatios, setMediaAspectRatios] = useState({});
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewActiveIndex, setPreviewActiveIndex] = useState(0);
   const [displayIndex, setDisplayIndex] = useState(0);
+  const mediaAspectRatio =
+    mediaAspectRatios[previewActiveIndex] ??
+    mediaAspectRatios[activeIndex] ??
+    mediaAspectRatios[displayIndex] ??
+    16 / 9;
   const startIndex = useMemo(
     () => Math.max(0, Math.min(slides.length - 1, initialIndex ?? 0)),
     [initialIndex, slides.length],
@@ -52,6 +59,61 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const media = window.matchMedia("(max-width: 1200px)");
+    const update = () => setIsMax1200(media.matches);
+    update();
+
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!slides.length) {
+      setMediaAspectRatios({});
+      return;
+    }
+
+    let cancelled = false;
+    const ratios = {};
+    let pending = slides.length;
+
+    const completeOne = () => {
+      pending -= 1;
+      if (!pending && !cancelled) {
+        setMediaAspectRatios(ratios);
+      }
+    };
+
+    slides.forEach((slide, idx) => {
+      const src = slide?.imageSrc;
+      if (!src) {
+        ratios[idx] = 16 / 9;
+        completeOne();
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 0;
+        const h = img.naturalHeight || 0;
+        ratios[idx] = w > 0 && h > 0 ? w / h : 16 / 9;
+        completeOne();
+      };
+      img.onerror = () => {
+        ratios[idx] = 16 / 9;
+        completeOne();
+      };
+      img.src = src;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slides]);
 
   useLayoutEffect(() => {
     if (!mounted) return;
@@ -255,7 +317,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     const col = rightColRef.current;
     const media = mediaRef.current;
     const previews = previewViewportRef.current;
-    if (!col || !media || !previews) return;
+    if (!col || !media) return;
 
     const compute = () => {
       // Available height inside the right column container (it has top+bottom)
@@ -263,14 +325,16 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
       const colW = col.getBoundingClientRect().width;
       const styles = window.getComputedStyle(col);
       const gap = parseFloat(styles.rowGap || styles.gap || "0") || 0;
-      const previewsH = previews.getBoundingClientRect().height;
+      const previewsH = previews?.getBoundingClientRect().height ?? 0;
 
-      // Ideal 16:9 height for full width
-      const ideal = (colW * 9) / 16;
+      // Keep native media aspect ratio in JS; mobile 16:9 is handled in CSS.
+      const ratio = mediaAspectRatio > 0 ? mediaAspectRatio : 16 / 9;
+      const ideal = colW / ratio;
       const available = Math.max(180, colH - previewsH - gap); // keep some minimum
       const h = Math.min(ideal, available);
 
       col.style.setProperty("--media-h", `${h}px`);
+      col.style.removeProperty("--media-w");
 
       // Compute preview card width from actual right column width (always 3 cards)
       const track = previewTrackRef.current;
@@ -286,11 +350,11 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
     const ro = new ResizeObserver(compute);
     ro.observe(col);
-    ro.observe(previews);
+    if (previews) ro.observe(previews);
 
     compute();
     return () => ro.disconnect();
-  }, [mounted]);
+  }, [mounted, isMax1200, mediaAspectRatio]);
 
   const goTo = (next) => {
     const len = slides.length;
@@ -303,11 +367,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
     const track = previewTrackRef.current;
     const step = stepRef.current || measureStep();
-    if (!track || !step) {
-      animatingRef.current = false;
-      return;
-    }
-
     const firstVisible = getFirstVisibleIndex(nextIndex, len);
 
     // Start info fade immediately with carousel motion
@@ -315,19 +374,40 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     // Update preview opacity immediately on scroll start
     setPreviewActiveIndex(nextIndex);
 
-    gsap.to(track, {
-      x: -firstVisible * step,
-      duration: CAROUSEL_DURATION,
-      ease: "power1.inOut",
-      overwrite: true,
-      onComplete: () => {
-        setActiveIndex(() => nextIndex);
-        gsap.set(track, { x: -firstVisible * step });
+    if (track && step) {
+      // Desktop: preview track drives timing, media animates in parallel
+      gsap.to(track, {
+        x: -firstVisible * step,
+        duration: CAROUSEL_DURATION,
+        ease: "power1.inOut",
+        overwrite: true,
+        onComplete: () => {
+          setActiveIndex(() => nextIndex);
+          gsap.set(track, { x: -firstVisible * step });
+          animatingRef.current = false;
+        },
+      });
+      setMediaXByIndex(nextIndex);
+    } else {
+      // Mobile: no preview track — animate media, update state on complete
+      const mTrack = mediaTrackRef.current;
+      const mStep = mediaStepRef.current || measureMediaStep();
+      if (mTrack && mStep) {
+        gsap.to(mTrack, {
+          x: -nextIndex * mStep,
+          duration: CAROUSEL_DURATION,
+          ease: "power1.inOut",
+          overwrite: true,
+          onComplete: () => {
+            setActiveIndex(nextIndex);
+            animatingRef.current = false;
+          },
+        });
+      } else {
+        setActiveIndex(nextIndex);
         animatingRef.current = false;
-      },
-    });
-
-    setMediaXByIndex(nextIndex);
+      }
+    }
   };
 
   const go = (dir) => {
@@ -383,14 +463,15 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     <div className={styles.overlay} ref={overlayRef} role="dialog" aria-modal="true">
       <div className={styles.wipe} ref={wipeRef} aria-hidden="true" />
       <div className={styles.overlayMask} ref={overlayMaskRef}>
-        <div className={styles.overlayContent}>
+        <div
+          className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""}`}
+        >
           <div className={styles.info} ref={infoRef}>
           <p className={styles.date}>{active?.date}</p>
           <p className={styles.title}>{active?.title}</p>
           <div className={styles.desc}>
             <p>
-              Создание мультимедийного пространства для регионального филиала
-              Национального центра «Россия» во Владивостоке, Приморский Край.
+              Создание мультимедийного пространства для регионального филиала Национального центра «Россия» во Владивостоке, Приморский Край.
             </p>
             <p>
               Development of a multimedia space for the regional branch of the
@@ -402,8 +483,13 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
           </div>
         </div>
 
-          <div className={styles.rightCol} ref={rightColRef}>
-          <div className={styles.media} aria-label="Video carousel" ref={mediaRef}>
+          <div className={`${styles.rightCol} ${isMax1200 ? styles.rightColMax1200 : ""}`} ref={rightColRef}>
+          <div
+            className={styles.media}
+            aria-label="Video carousel"
+            ref={mediaRef}
+            style={{ "--media-aspect-ratio": mediaAspectRatio }}
+          >
             <div className={styles.mediaTrack} ref={mediaTrackRef}>
               {slides.map((c, idx) => (
                 <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
@@ -417,33 +503,35 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             </div>
           </div>
 
-          <div
-            className={styles.previewsViewport}
-            ref={previewViewportRef}
-            aria-label="Project previews"
-          >
+          {!isMax1200 && (
             <div
-              className={styles.previewsTrack}
-              ref={previewTrackRef}
-              onWheel={onPreviewWheel}
+              className={styles.previewsViewport}
+              ref={previewViewportRef}
+              aria-label="Project previews"
             >
-              {trackItems.map((c, idx) => {
-                const isActive = idx === previewActiveIndex;
-                const isDim = !isActive;
+              <div
+                className={styles.previewsTrack}
+                ref={previewTrackRef}
+                onWheel={onPreviewWheel}
+              >
+                {trackItems.map((c, idx) => {
+                  const isActive = idx === previewActiveIndex;
+                  const isDim = !isActive;
 
-                return (
-                  <PortfolioPreviewCard
-                    key={`${c?.id ?? "item"}-${idx}`}
-                    card={c}
-                    dim={isDim}
-                    onClick={() => goTo(idx)}
-                    ariaLabel={isActive ? "Current project" : "Open project"}
-                    data-preview-item
-                  />
-                );
-              })}
+                  return (
+                    <PortfolioPreviewCard
+                      key={`${c?.id ?? "item"}-${idx}`}
+                      card={c}
+                      dim={isDim}
+                      onClick={() => goTo(idx)}
+                      ariaLabel={isActive ? "Current project" : "Open project"}
+                      data-preview-item
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.carouselActions}>
             <button

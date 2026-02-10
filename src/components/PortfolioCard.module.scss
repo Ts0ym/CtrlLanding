@@ -37,16 +37,28 @@
   display: grid;
   gap: clamp(0.75rem, 3cqi, 1.25rem);
   color: var(--fg);
+
+  @media (max-width: 800px){
+    gap: 0.7rem;
+  }
 }
 
 .date {
   margin: 0;
   font-family: var(--font-geist-sans), sans-serif;
-  font-size: clamp(0.375rem, 1.8cqi, 0.625rem); /* 6px..10px */
+  font-size: clamp(0.375rem, 1.8cqi, 0.625rem);
   line-height: 1.35;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   font-weight: 400;
+
+  @media (max-width: 1200px){
+    font-size: 0.5rem;
+  }
+
+  @media (max-width: 800px){
+    font-size: 0.6rem;
+  }
 }
 
 .title {
@@ -54,17 +66,24 @@
   margin: 0;
   align-self: start;
   font-family: var(--font-cormorant), serif;
-  font-size: clamp(0.75rem, 4.2cqi, 1.125rem); /* 12px..18px */
+  font-size: clamp(0.75rem, 4.2cqi, 1.125rem);
   line-height: 1.05;
-  letter-spacing: -0.0225rem; /* -0.36px */
+  letter-spacing: -0.0225rem;
   white-space: pre-line;
   font-style: normal;
   font-weight: 400;
-}
 
-@media (max-width: 900px) {
-  .title {
-    width: 100%;
+  @media (max-width: 1200px) {
+    width: 55%;
+    font-size: 1rem;
   }
+
+  @media (max-width: 800px){
+    width: 70%;
+    font-size: 1.9rem;
+    font-style: italic;
+    line-height:  1.9rem;
+  }
+
 }
 

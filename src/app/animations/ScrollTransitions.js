@@ -42,6 +42,12 @@ export default function ScrollTransitions() {
         return;
       }
 
+      /* Keep header expanded while portfolio viewer is open */
+      if (body.hasAttribute("data-portfolio-viewer")) {
+        body.setAttribute("data-header-state", "expanded");
+        return;
+      }
+
       /* Safety net for menu-close at the very top of the page */
       if (opts && opts.forceHeroIfNearTop) {
         const smoother = ScrollSmoother.get?.();

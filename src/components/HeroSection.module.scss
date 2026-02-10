@@ -1,0 +1,110 @@
+.hero {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.headline {
+  position: absolute;
+  top: 1.5rem;
+  left: calc(var(--col-split) + 0.75rem);
+  right: calc(25% + 0.71875rem);
+  color: var(--fg);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.12rem;
+
+  @media (max-width: 800px) {
+    left: var(--pad);
+    top: 4rem;
+    padding-right: 0;
+  }
+
+  @media (max-width: 1200px) {
+    left: var(--pad);
+    right: var(--pad);
+  } 
+  
+}
+
+.headline p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow: hidden;
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}
+
+.headline p > span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.headlineLine {
+  font-size: 4rem;
+  line-height: 4rem;
+  margin-top: 0rem;
+
+  @media (max-width: 800px){
+    line-height: 3.25rem;
+    font-size: 3.125rem;
+  }
+}
+
+.headlineLineCn {
+  margin-top: 0rem;
+  font-size: 3.125rem;
+  line-height: 4.25rem;
+  letter-spacing: -0.0625rem;
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
+  font-style: normal; 
+  font-weight: 300;
+
+  @media (max-width: 800px){
+    line-height: 3.9rem;
+    font-size: 2.8rem;
+  }
+}
+
+.logoWrap {
+  position: absolute;
+  left: calc(var(--col-split) + 0.75rem);
+  right: 0.48875rem;
+  bottom: var(--dock-bottom);
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+
+  @media (max-width: 1200px) {
+    left: var(--pad);
+    right: var(--pad);
+    justify-content: flex-start;
+  }
+
+  @media (max-width: 640px) {
+    left: 0;
+    right: var(--pad);
+    justify-content: center;
+    padding-right: 0;
+  }
+}
+
+.logoMask {
+  overflow: hidden;
+  will-change: transform;
+}
+
+.logo {
+  width: clamp(24rem, 46vw, 54rem);
+  max-width: 100%;
+  max-height: min(58vh, calc(100vh - 14rem));
+  height: auto;
+  display: block;
+
+  @media (max-width: 640px) {
+    width: min(92vw, 40rem);
+  }
+}
