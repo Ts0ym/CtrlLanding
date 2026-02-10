@@ -1,0 +1,70 @@
+/* Global styles + minimal reset */
+
+:root {
+  --bg: #ffffff;
+  --fg: rgba(0, 0, 0, 0.9);
+  --line: rgba(0, 0, 0, 0.75);
+  --rule-thickness: 0.0625rem;
+  --pad: 1rem;
+  --pad-bottom: 0.8125rem;
+  --dock-bottom: 3.3125rem;
+  --arrow-bottom: 1.3125rem;
+  --header-shift: 0rem;
+  --burger-top: calc(var(--pad) + 1em);
+  --burger-h: 1.85938rem;
+  --burger-curve: cubic-bezier(1, 0, 0, 1);
+  --menu-open-extra: 16rem;
+  --col-split: 33.3333%;
+  --col-gap: 1rem;
+}
+
+html {
+  font-size: clamp(100%, 0.85vw, 125%);
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: style;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+body[data-intro-active] [data-anim="header-logo"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.srOnly {
+  position: absolute !important;
+  width: 0.0625rem !important;
+  height: 0.0625rem !important;
+  padding: 0 !important;
+  margin: -0.0625rem !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

@@ -1,0 +1,304 @@
+.stage {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hero {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.headline {
+  position: absolute;
+  top: 1.5rem;
+  left: calc(var(--col-split) + 0.75rem);
+  right: calc(25% + 0.71875rem);
+  color: var(--fg);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.12rem;
+}
+
+.headline p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow: hidden;
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}
+
+.headline p > span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.headline p:nth-child(1),
+.headline p:nth-child(2) {
+  font-size: 4rem;
+  line-height: 4rem;
+}
+
+.headline p:nth-child(2) {
+  margin-top: 0rem;
+}
+
+.headline p:nth-child(3) {
+  margin-top: 0rem;
+  font-size: 3.125rem;
+  line-height: 4.25rem;
+  letter-spacing: -0.0625rem;
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
+  font-style: normal;
+}
+
+.logoWrap {
+  position: absolute;
+  left: calc(var(--col-split) + 0.75rem);
+  right: 0.48875rem;
+  bottom: var(--dock-bottom);
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
+.logoMask {
+  overflow: hidden;
+  will-change: transform;
+}
+
+.logo {
+  width: clamp(24rem, 46vw, 54rem);
+  max-width: 100%;
+  max-height: min(58vh, calc(100vh - 14rem));
+  height: auto;
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .headline {
+    left: 0;
+    right: 0;
+    top: 2.125rem;
+    padding-right: 0;
+  }
+
+  .logoWrap {
+    left: 0;
+    right: var(--pad);
+    justify-content: center;
+    padding-right: 0;
+  }
+
+  .logo {
+    width: min(92vw, 40rem);
+  }
+}
+
+@media (max-width: 1200px) {
+  .headline {
+    left: var(--pad);
+    right: var(--pad);
+  }
+
+  .logoWrap {
+    left: var(--pad);
+    right: var(--pad);
+    justify-content: flex-start;
+  }
+
+  .portfolioGrid {
+    grid-template-columns: repeat(2, minmax(17.9375rem, 1fr));
+  }
+}
+
+.about {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sectionHeadline {
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.075rem;
+  font-size: 2.5rem;
+  line-height: 2.5rem;
+}
+
+.sectionHeadline p {
+  margin: 0;
+}
+
+.sectionHeadlineCn {
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
+  font-style: normal;
+  line-height: 3rem;
+  font-weight: 300;
+}
+
+.aboutHeadline {
+  position: absolute;
+  top: 5.25rem;
+  left: var(--pad);
+  right: calc(66.6667% + 0.3125rem);
+}
+
+.aboutHeadline p,
+.aboutBody p {
+  margin: 0;
+  overflow: hidden;
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}
+
+.aboutHeadline p > span,
+.aboutBody p > span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+
+.aboutBody {
+  position: absolute;
+  bottom: var(--dock-bottom);
+  left: calc(var(--col-split) + 0.75rem);
+  right: var(--pad);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 3rem;
+  line-height: 3rem;
+  letter-spacing: -0.09rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.aboutBody p {
+  white-space: pre-wrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.aboutCn {
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
+  font-style: normal;
+  font-size: 2.625rem; 
+  line-height: 3rem; 
+  font-weight: 300;
+  letter-spacing: -0.07875rem;
+}
+
+.portfolio {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: calc(var(--pad-bottom) + 3rem);
+  margin-top: 8rem;
+}
+
+.portfolioHeadline {
+  position: absolute;
+  top: 5.25rem; /* 84px */
+  left: var(--pad);
+  right: calc(66.6667% + 0.3125rem);
+}
+
+.portfolioGrid {
+  position: relative;
+  margin-left: calc(var(--col-split) + 0.6875rem); /* +11px */
+  margin-right: var(--pad);
+  padding-top: 5.25rem; /* 80px */
+  padding-bottom: 4.0625rem; /* 65px */
+  display: grid;
+  grid-template-columns: repeat(3, minmax(17.9375rem, 1fr)); /* min 287px */
+  column-gap: clamp(1.125rem, 1.2vw, 2rem); /* 18px..32px */
+  row-gap: 3rem; /* 48px */
+  justify-content: stretch;
+}
+
+@media (max-width: 900px) {
+  .portfolioGrid {
+    grid-template-columns: 1fr;
+    margin-left: var(--pad);
+  }
+
+  .contactsBody {
+    margin-left: var(--pad);
+  }
+}
+
+.contacts {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: calc(var(--pad-bottom) + 3rem);
+  margin-top: 8rem;
+}
+
+.contactsHeadline {
+  position: absolute;
+  top: 4rem;
+  left: var(--pad);
+  right: calc(66.6667% + 0.3125rem);
+}
+
+.contactsBody {
+  position: relative;
+  margin-left: calc(var(--col-split) + 0.6875rem); /* +11px */
+  margin-right: var(--pad);
+  /* Make the right column scale like cards */
+  container-type: inline-size;
+  padding-top: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  //gap: 1rem; /* 16px..32px */
+}
+
+.contactGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4em;
+}
+
+.contactText {
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.7rem;
+  line-height: normal;
+  letter-spacing: -0.045rem; 
+  color: var(--fg);
+  white-space: pre-wrap;
+  padding-top: 0.5em;
+}
+
+.contactTextCn {
+  font-weight: 300;
+}
+
+.contactText p {
+  margin: 0;
+}
+
+.contactRule {
+  height: 0.5px;
+  width: 100%;
+  background: var(--line);
+  border: 0;
+}
+

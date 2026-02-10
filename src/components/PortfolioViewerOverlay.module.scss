@@ -1,0 +1,318 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  color: var(--fg);
+  z-index: 20;
+  container-type: inline-size;
+  overflow: hidden;
+
+  --viewer-top: 4.5rem;
+  --viewer-right-left: calc(var(--col-split) + 0.6875rem);
+  --viewer-cols-gap: clamp(0.75rem, 1.2cqi, 1.5rem);
+  --preview-gap: clamp(1.125rem, 1.4cqi, 2rem);
+  --preview-card: clamp(12.5rem, 14cqi, 16rem);
+  --preview-count: 3;
+}
+
+.wipe {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 0;
+  will-change: transform;
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+.overlayMask {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  height: 100%;
+  will-change: -webkit-mask-size, mask-size;
+  -webkit-mask-image: linear-gradient(#000 0 0);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: top;
+  -webkit-mask-size: 100% 0%;
+  mask-image: linear-gradient(#000 0 0);
+  mask-repeat: no-repeat;
+  mask-position: top;
+  mask-size: 100% 0%;
+}
+
+.overlayContent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+
+.rightCol {
+  position: absolute;
+  top: var(--viewer-top);
+  bottom: calc(var(--pad-bottom) + 3.5rem);
+  left: var(--viewer-right-left);
+  right: var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  --preview-card-fit: var(--preview-card);
+  --media-h: auto;
+}
+
+.info {
+  position: absolute;
+  top: var(--viewer-top);
+  left: var(--pad);
+  /* End right before the landing-aligned right column */
+  right: calc(100% - var(--viewer-right-left) + var(--viewer-cols-gap));
+}
+
+.date {
+  margin: 0;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.6rem;
+  line-height: 1.9;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.title {
+  margin: 0;
+  margin-top: clamp(0.75rem, 1.2cqi, 1.25rem);
+  font-family: var(--font-cormorant), serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2rem; 
+  line-height: 2rem;
+  letter-spacing: -0.045rem;
+  white-space: pre-line;
+}
+
+.desc {
+
+  margin-top: clamp(1.25rem, 2.4cqi, 2rem);
+  display: grid;
+  gap: clamp(1.25rem, 2.6cqi, 2rem);
+  width: clamp(14.25rem, 16cqi, 20rem);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1.2rem;
+  letter-spacing: -0.0225rem;
+}
+
+.desc p {
+  margin: 0;
+}
+
+.media {
+  position: relative;
+  width: 100%;
+  height: var(--media-h);
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 0;
+  overflow: hidden;
+  flex: 0 1 auto;
+}
+
+.mediaTrack {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.mediaSlide {
+  flex: 0 0 100%;
+  height: 100%;
+  position: relative;
+}
+
+.mediaInner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.mediaLabel {
+  margin: 0;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: clamp(0.75rem, 1.1cqi, 0.95rem);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.55);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.22);
+  padding: clamp(0.4rem, 0.9cqi, 0.65rem) clamp(0.6rem, 1.2cqi, 0.9rem);
+  border-radius: 999px;
+}
+
+.previewsViewport {
+  box-sizing: border-box;
+  width: 100%; 
+  overflow: hidden; 
+}
+
+.previewsTrack {
+  display: flex;
+  gap: var(--preview-gap);
+  align-items: start;
+  width: max-content;
+  will-change: transform;
+}
+
+
+.backBtn,
+.prevBtn,
+.nextBtn {
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--fg);
+  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+    serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: -0.0225rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.backBtn {
+  position: fixed;
+  bottom: 1.5rem;
+  left: var(--pad);
+}
+
+.prevBtn {
+  max-width: 28rem;
+  text-align: left;
+}
+
+.nextBtn {
+  max-width: 28rem;
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.btnText {
+  position: relative;
+  display: inline-block;
+  --btn-underline-offset: 0.1rem;
+}
+
+.btnTextCn {
+  font-weight: 300;
+}
+
+.btnText::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 0;
+  top: 100%;
+  margin-top: var(--btn-underline-offset);
+  height: 1px;
+  background: currentColor;
+  transition: width 0.25s ease;
+}
+
+.nextBtn .btnText::after {
+  left: auto;
+  right: 0;
+}
+
+.backBtn:hover .btnText::after,
+.prevBtn:hover .btnText::after,
+.nextBtn:hover .btnText::after {
+  width: 100%;
+}
+
+.carouselActions {
+  position: fixed;
+  left: var(--viewer-right-left);
+  right: var(--pad);
+  bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.btnIcon {
+  width: 0.9375rem;
+  height: 1rem;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.btnIconLeft {
+  transform: rotate(90deg);
+}
+
+.btnIconRight {
+  transform: rotate(-90deg);
+}
+
+@media (max-width: 900px) {
+  .overlay {
+    --preview-gap: clamp(0.75rem, 2vw, 1rem);
+    --preview-card: clamp(7.5rem, 28vw, 12rem);
+    --preview-count: 3;
+  }
+
+  .info {
+    right: var(--pad);
+  }
+
+  .rightCol {
+    left: var(--pad);
+    right: var(--pad);
+    width: auto;
+    top: 22rem;
+  }
+
+  .carouselActions {
+    flex-direction: column;
+    align-items: flex-start;
+    left: var(--pad);
+    right: var(--pad);
+    bottom: calc(var(--pad-bottom) + 3rem);
+  }
+
+  .backBtn {
+    bottom: calc(var(--pad-bottom) + 5.5rem);
+  }
+}
+
+@media (min-width: 1600px) {
+  .overlay {
+    --preview-card: clamp(9.5rem, 10.5cqi, 12rem);
+    --preview-gap: clamp(1.125rem, 1.4cqi, 2rem);
+  }
+}
+
+@media (min-width: 1600px) {
+  .overlay {
+    --preview-count: 4;
+  }
+
+}
+
