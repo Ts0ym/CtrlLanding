@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
-
+//basePath: "/CtrlLanding",
+//assetPrefix: "/CtrlLanding/",
 const nextConfig = {
   output: "export",
   distDir: "output",
-  basePath: "/CtrlLanding",
-  assetPrefix: "/CtrlLanding/",
+  basePath: "",
+  assetPrefix: "",
+  images: {
+    unoptimized: true,
+  },
   env: {
-    NEXT_PUBLIC_BASE_PATH: "/CtrlLanding",
+    NEXT_PUBLIC_BASE_PATH: "",
   },
   devIndicators: {
     buildActivity: false,

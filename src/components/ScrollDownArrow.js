@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
+import Image from "next/image";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getAssetUrl } from "../lib/assetUrl";
 
 export default function ScrollDownArrow({ className, iconClassName }) {
   const onClick = useCallback((e) => {
@@ -58,7 +58,7 @@ export default function ScrollDownArrow({ className, iconClassName }) {
       onClick={onClick}
       aria-label="Scroll to next section"
     >
-      <img className={iconClassName} src={getAssetUrl("/svg/arrow.svg")} alt="" />
+      <Image className={iconClassName} src="/svg/arrow.svg" alt="" width={15} height={16} />
     </button>
   );
 }

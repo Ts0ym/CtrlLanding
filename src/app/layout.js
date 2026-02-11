@@ -5,6 +5,7 @@ import {
   Noto_Sans_SC,
 } from "next/font/google";
 import localFont from "next/font/local";
+import Image from "next/image";
 import "./globals.scss";
 import IntroAnimation from "./animations/IntroAnimation";
 import ScrollTransitions from "./animations/ScrollTransitions";
@@ -14,7 +15,6 @@ import MenuNav from "../components/MenuNav.client";
 import PortfolioAnimations from "./animations/PortfolioAnimations";
 import MobileMenuToggle from "../components/MobileMenuToggle.client";
 import styles from "./layout.module.scss";
-import { getAssetUrl } from "../lib/assetUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -86,7 +86,14 @@ export default function RootLayout({ children }) {
             data-anim="header-logo"
             aria-hidden="true"
           >
-            <img className={styles.headerLogoImg} src={getAssetUrl("/svg/ctrl..svg")} alt="" />
+            <Image
+              className={styles.headerLogoImg}
+              src="/svg/ctrl..svg"
+              alt=""
+              width={180}
+              height={32}
+              priority
+            />
           </div>
           <div className={styles.topLineLeft} data-anim="line" aria-hidden="true" />
           <div className={styles.topLineRight} data-anim="line" aria-hidden="true" />

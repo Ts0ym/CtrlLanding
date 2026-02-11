@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import gsap from "gsap";
 import styles from "./PortfolioViewerOverlay.module.scss";
 import PortfolioPreviewCard from "./PortfolioPreviewCard";
@@ -20,6 +21,7 @@ function getFirstVisibleIndex(index, len) {
 
 export default function PortfolioViewerOverlay({ cards, initialIndex, onClose }) {
   const slides = useMemo(() => cards ?? [], [cards]);
+  const carouselMediaSrc = "/images/videoPlaceholder.png";
   const CAROUSEL_DURATION = 1;
   const WIPE_DURATION = 0.5;
   const MASK_DURATION = 0.5;
@@ -90,14 +92,14 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     };
 
     slides.forEach((slide, idx) => {
-      const src = slide?.imageSrc;
+      const src = carouselMediaSrc;
       if (!src) {
         ratios[idx] = 16 / 9;
         completeOne();
         return;
       }
 
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         const w = img.naturalWidth || 0;
         const h = img.naturalHeight || 0;
@@ -114,7 +116,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     return () => {
       cancelled = true;
     };
-  }, [slides]);
+  }, [carouselMediaSrc, slides]);
 
   useLayoutEffect(() => {
     if (!mounted) return;
@@ -494,10 +496,16 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             <div className={styles.mediaTrack} ref={mediaTrackRef}>
               {slides.map((c, idx) => (
                 <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
-                  <div
-                    className={styles.mediaInner}
-                    style={{ backgroundImage: `url(${getAssetUrl(c?.imageSrc || "")})` }}
-                  >
+                  <div className={styles.mediaInner}>
+                    {c?.imageSrc ? (
+                      <Image
+                        className={styles.mediaImage}
+                        src={carouselMediaSrc}
+                        alt=""
+                        fill
+                        sizes={isMax1200 ? "100vw" : "50vw"}
+                      />
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -541,11 +549,13 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               onClick={() => go(-1)}
               aria-label="Previous project"
             >
-              <img
+              <Image
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-                src={getAssetUrl("/svg/arrow.svg")}
+                src="/svg/arrow.svg"
                 alt=""
                 aria-hidden="true"
+                width={15}
+                height={16}
               />
             <span className={styles.btnText}>
               Предыдущая работа · Previous project ·
@@ -563,22 +573,26 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               Следующая работа · Next project ·
               <span className={styles.btnTextCn}>下一个项目</span>
             </span>
-              <img
+              <Image
                 className={`${styles.btnIcon} ${styles.btnIconRight}`}
-                src={getAssetUrl("/svg/arrow.svg")}
+                src="/svg/arrow.svg"
                 alt=""
                 aria-hidden="true"
+                width={15}
+                height={16}
               />
             </button>
           </div>
         </div>
 
         <button type="button" className={styles.backBtn} onClick={handleClose}>
-          <img
+          <Image
             className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-            src={getAssetUrl("/svg/arrow.svg")}
+            src="/svg/arrow.svg"
             alt=""
             aria-hidden="true"
+            width={15}
+            height={16}
           />
           <span className={styles.btnText}>
             Назад · Back · <span className={styles.btnTextCn}>返回</span>

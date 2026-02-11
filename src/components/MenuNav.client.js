@@ -145,15 +145,18 @@ export default function MenuNav() {
             }`}
             href="#home"
           >
-            <span>Главная</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
+            <span className={styles.menuLinkLabel}>
+              <span>Главная</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span>Home</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span className={styles.menuCn}>首页</span>
             </span>
-            <span>Home</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
-            </span>
-            <span className={styles.menuCn}>首页</span>
+            <span className={styles.menuLinkUnderline} aria-hidden="true" />
           </a>
         </li>
         <li>
@@ -163,15 +166,18 @@ export default function MenuNav() {
             }`}
             href="#about"
           >
-            <span>О нас</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
+            <span className={styles.menuLinkLabel}>
+              <span>О нас</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span>About Us</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span className={styles.menuCn}>关于我们</span>
             </span>
-            <span>About Us</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
-            </span>
-            <span className={styles.menuCn}>关于我们</span>
+            <span className={styles.menuLinkUnderline} aria-hidden="true" />
           </a>
         </li>
         <li>
@@ -181,15 +187,18 @@ export default function MenuNav() {
             }`}
             href="#work"
           >
-            <span>Работы</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
+            <span className={styles.menuLinkLabel}>
+              <span>Работы</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span>Portfolio</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span className={styles.menuCn}>作品集</span>
             </span>
-            <span>Portfolio</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
-            </span>
-            <span className={styles.menuCn}>作品集</span>
+            <span className={styles.menuLinkUnderline} aria-hidden="true" />
           </a>
         </li>
         <li>
@@ -199,15 +208,18 @@ export default function MenuNav() {
             }`}
             href="#contact"
           >
-            <span>Контакты</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
+            <span className={styles.menuLinkLabel}>
+              <span>Контакты</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span>Contact Us</span>
+              <span className={styles.sep} aria-hidden="true">
+                ·
+              </span>
+              <span className={styles.menuCn}>联系我们</span>
             </span>
-            <span>Contact Us</span>
-            <span className={styles.sep} aria-hidden="true">
-              ·
-            </span>
-            <span className={styles.menuCn}>联系我们</span>
+            <span className={styles.menuLinkUnderline} aria-hidden="true" />
           </a>
         </li>
       </ul>

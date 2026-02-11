@@ -138,6 +138,8 @@
   line-height: 2rem;
   letter-spacing: -0.045rem;
   white-space: pre-line;
+  max-width: 70%;
+
   @media (max-width: 1200px) {
     font-size: 1.5rem;
     line-height: 1.5rem;
@@ -213,9 +215,10 @@
   display: grid;
   place-items: center;
   background-color: #111;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+}
+
+.mediaImage {
+  object-fit: cover;
 }
 
 .mediaLabel {

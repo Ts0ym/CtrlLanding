@@ -8,10 +8,25 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 const MOBILE_BREAKPOINT = "(max-width: 768px)";
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 export default function SmoothScroll() {
   useLayoutEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const prefersReducedMotion = window.matchMedia(REDUCED_MOTION).matches;
+
+    // При «Уменьшить движение» используем обычный скролл (как на мобильном).
+    if (prefersReducedMotion) {
+      document.body.setAttribute("data-scroll-mode", "native");
+      try {
+        window.history.scrollRestoration = "manual";
+      } catch {}
+      ScrollTrigger.clearScrollMemory("manual");
+      window.scrollTo(0, 0);
+      ScrollTrigger.refresh();
+      return () => {
+        document.body.removeAttribute("data-scroll-mode");
+      };
+    }
 
     // Prevent "starts on portfolio" caused by scroll restoration (browser + ScrollTrigger).
     try {

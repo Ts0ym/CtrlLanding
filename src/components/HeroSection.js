@@ -1,5 +1,5 @@
 import styles from "./HeroSection.module.scss";
-import { getAssetUrl } from "../lib/assetUrl";
+import Image from "next/image";
 
 export default function HeroSection() {
   return (
@@ -24,12 +24,16 @@ export default function HeroSection() {
 
       <div className={styles.logoWrap} aria-hidden="true">
         <div className={styles.logoMask} data-anim="logo-mask">
-          <img
+          <Image
             className={styles.logo}
             data-anim="logo"
             data-scroll="hero-out"
-            src={getAssetUrl("/svg/ctrl..svg")}
+            src="/svg/ctrl..svg"
             alt=""
+            width={1200}
+            height={220}
+            sizes="(max-width: 640px) 92vw, 46vw"
+            priority
           />
         </div>
       </div>

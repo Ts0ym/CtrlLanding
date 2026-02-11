@@ -1,5 +1,5 @@
 import styles from "./PortfolioCard.module.scss";
-import { getAssetUrl } from "../lib/assetUrl";
+import Image from "next/image";
 
 export default function PortfolioCard({ card, onClick }) {
   return (
@@ -11,7 +11,13 @@ export default function PortfolioCard({ card, onClick }) {
         aria-label="Open project"
       >
         <div className={styles.imageWrap}>
-          <img className={styles.image} src={getAssetUrl(card.imageSrc)} alt="" loading="lazy" />
+          <Image
+            className={styles.image}
+            src={card.imageSrc}
+            alt=""
+            fill
+            sizes="(max-width: 800px) 100vw, 33vw"
+          />
         </div>
         <div className={styles.meta}>
           <p className={styles.date}>{card.date}</p>

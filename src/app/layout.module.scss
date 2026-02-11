@@ -20,6 +20,14 @@
     overflow: visible;
     min-height: 0;
   }
+
+  /* «Уменьшить движение» или нет ScrollSmoother — обычный скролл */
+  :global(body[data-scroll-mode="native"]) & {
+    position: static;
+    inset: auto;
+    overflow: visible;
+    min-height: 0;
+  }
 }
 
 .smoothContent {
@@ -27,6 +35,10 @@
   will-change: transform;
 
   @media (max-width: 768px) {
+    will-change: auto;
+  }
+
+  :global(body[data-scroll-mode="native"]) & {
     will-change: auto;
   }
 }
@@ -255,31 +267,32 @@
 }
 
 .menuLink {
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 0;
   position: relative;
   text-decoration: none;
-  overflow: visible;
-  --menu-underline-offset: 0.125rem;
 }
 
 .menuLink:hover {
   text-decoration: none;
 }
 
-.menuLink::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 100%;
-  margin-top: var(--menu-underline-offset);
-  height: 1px;
+.menuLinkLabel {
+  display: inline-block;
+}
+
+.menuLinkUnderline {
+  display: block;
   width: 0;
-  background: currentColor;
+  height: 0;
+  margin-top: 2px;
+  border-top: 1px solid currentColor;
   transition: width 0.25s ease;
 }
 
-.menuLink:hover::after {
+.menuLink:hover .menuLinkUnderline {
   width: 100%;
 }
 
@@ -428,7 +441,11 @@
   font-size: 1.25rem;
 }
 
-:global(body[data-header-state="menu-open"]) .menuLink:hover::after {
+:global(body[data-header-state="menu-open"]) .menuLink:hover {
+  text-decoration: none;
+}
+
+:global(body[data-header-state="menu-open"]) .menuLink:hover .menuLinkUnderline {
   width: 0;
 }
 
