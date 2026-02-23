@@ -82,6 +82,7 @@ export default function MobileMenuToggle() {
     <button
       type="button"
       className={`${styles.burger} ${open ? styles.burgerOpen : ""}`}
+      data-anim="burger"
       aria-label={open ? "Close menu" : "Open menu"}
       onClick={handleClick}
       aria-busy={isTransitioning}

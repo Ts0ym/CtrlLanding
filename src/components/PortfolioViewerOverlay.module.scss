@@ -298,6 +298,10 @@
   position: fixed;
   bottom: 1.5rem;
   left: var(--pad);
+  max-width: calc(100vw - 2 * var(--pad));
+  box-sizing: border-box;
+  white-space: normal;
+  flex-wrap: wrap;
 
   @media (max-width: 1200px) {
     position: static;
@@ -305,6 +309,12 @@
     left: auto;
     order: -1;
     margin-bottom: 0.75rem;
+    
+  }
+
+  @media (max-width: 800px){
+    font-size: 1.2em;
+    max-width: 100%;
   }
 }
 
@@ -350,6 +360,7 @@
 
 .btnTextCn {
   font-weight: 300;
+  font-style: normal;
 }
 
 .btnText::after {

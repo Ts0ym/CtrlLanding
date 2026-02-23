@@ -44,12 +44,14 @@ export default function IntroAnimation() {
       const menuTitle = document.querySelector('[data-anim="menu-title"]');
       const menuList = document.querySelector('[data-anim="menu-list"]');
       const arrow = document.querySelector('[data-anim="arrow"]');
+      const burger = document.querySelector('[data-anim="burger"]');
 
       gsap.set(logo, { yPercent: 100, opacity: 0 });
       gsap.set(frameLines, { scaleX: 0, opacity: 0, transformOrigin: "0% 50%" });
       gsap.set(heroLines, { yPercent: 100, opacity: 0 });
       gsap.set([menuTitle, menuList], { yPercent: 100, opacity: 0 });
       gsap.set(arrow, { y: -12, opacity: 0 });
+      if (burger) gsap.set(burger, { opacity: 0 });
 
       tl = gsap.timeline();
       tl.timeScale(TIME_SCALE);
@@ -61,6 +63,7 @@ export default function IntroAnimation() {
         ease: "power1.inOut",
       })
         .to(frameLines, { scaleX: 1, opacity: 1, duration: 1.2, ease: "power1.inOut" }, ">-0.1")
+        .add(burger ? gsap.to(burger, { opacity: 1, duration: 0.4, ease: "power1.inOut" }) : () => {}, ">")
         .to(
           heroLines,
           {
