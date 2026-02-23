@@ -4,8 +4,8 @@
 const nextConfig = {
   output: "export",
   distDir: "output",
-  basePath: "",
-  assetPrefix: "",
+  basePath: "/CtrlLanding",
+  assetPrefix: "/CtrlLanding/",
   images: {
     unoptimized: true,
   },
