@@ -42,7 +42,8 @@ export default function SmoothScroll() {
       smoother = ScrollSmoother.create({
         wrapper: "#smooth-wrapper",
         content: "#smooth-content",
-        smooth: 1.6,
+        // Lower desktop smoothing to reduce lag against pinned scrubbed sections.
+        smooth: 1.15,
         smoothTouch: 0,
         effects: false,
       });

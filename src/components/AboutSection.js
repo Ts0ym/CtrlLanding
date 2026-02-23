@@ -24,7 +24,10 @@ export default function AboutSection() {
             {"                           "}
             Мы создаем иммерсивный опыт: видео, инсталляции, мэппинг
             и&nbsp;мультимедиа для выставок.
-            {"\n"}
+          </span>
+        </p>
+        <p>
+          <span data-scroll="about-in">
             {"                           "}
             We create immersive experiences: video, installations, mapping, and
             exhibition multimedia.

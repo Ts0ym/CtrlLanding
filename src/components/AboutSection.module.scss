@@ -31,6 +31,11 @@
   will-change: transform, opacity;
 }
 
+.aboutBody p > span {
+  display: block;
+  width: 100%;
+}
+
 .aboutBody {
   position: absolute;
   bottom: var(--dock-bottom);

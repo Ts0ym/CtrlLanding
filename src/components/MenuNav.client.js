@@ -85,11 +85,18 @@ export default function MenuNav() {
     const href = link.getAttribute("href");
     if (!href) return;
 
-    e.preventDefault();
     window.dispatchEvent(new CustomEvent("mobile-menu:close"));
     // Always close portfolio overlay before menu navigation.
     window.dispatchEvent(new CustomEvent("portfolio-viewer:close"));
     setActiveHref(href);
+
+    const isMobileMenu = window.matchMedia("(max-width: 800px)").matches;
+    if (isMobileMenu) {
+      // On mobile rely on native hash navigation for stable anchor scrolling.
+      return;
+    }
+
+    e.preventDefault();
 
     const smoother = ScrollSmoother.get?.();
     const current = smoother?.scrollTop?.() ?? window.scrollY ?? 0;

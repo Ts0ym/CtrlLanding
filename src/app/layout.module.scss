@@ -89,13 +89,17 @@
 }
 
 .headerLogo {
-  position: fixed;
+  position: fixed;  
   top: var(--pad);
   left: var(--pad);
   z-index: 32;
   pointer-events: none;
   transform-origin: 0% 50%;
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+
+  @media (max-width: 800px) {
+    top: calc(var(--pad)/2);
+  }
 }
 
 .headerLogoImg {
@@ -103,6 +107,10 @@
   width: auto;
   display: block;
   opacity: 0.95;
+
+  @media (max-width: 800px) {
+    height: 2.3rem;
+  }
 }
 
 .burger {
@@ -112,6 +120,7 @@
   width: 2.125rem;
   --burger-gap: 0.35rem;
   --burger-line: 0.13694rem;
+  --burger-cross-shift: calc((var(--burger-line) + var(--burger-gap)) * 1.5);
   height: calc(var(--burger-line) * 4 + var(--burger-gap) * 3);
   display: none;
   flex-direction: column;
@@ -130,7 +139,10 @@
   }
 
   @media (max-width: 800px) {
-    top: var(--pad);
+    top: calc(var(--pad) / 2 - 0.0625rem);
+    width: 3rem;
+    --burger-gap: 0.56rem;
+    --burger-line: 0.2rem;
   }
 }
 
@@ -144,7 +156,7 @@
 }
 
 .burgerOpen .burgerLine:nth-child(1) {
-  transform: translateY(0.7rem) rotate(41deg);
+  transform: translateY(var(--burger-cross-shift)) rotate(41deg);
 }
 
 .burgerOpen .burgerLine:nth-child(2),
@@ -153,7 +165,7 @@
 }
 
 .burgerOpen .burgerLine:nth-child(4) {
-  transform: translateY(-0.7rem) rotate(-41deg);
+  transform: translateY(calc(var(--burger-cross-shift) * -1)) rotate(-41deg);
 }
 
 .topLineLeft {
@@ -372,6 +384,10 @@
 
 :global(body[data-header-state="menu-open"]) .topLineLeft {
   top: calc(var(--pad) + var(--menu-open-extra) - var(--rule-thickness));
+
+  @media (max-width: 800px) {
+    top: calc(var(--pad) + 2.4rem);
+  }
 }
 
 :global(body[data-header-state="menu-open"]) .menu {
@@ -394,6 +410,20 @@
   opacity: 1;
   transition: opacity 0.3s ease;
   animation: menuFadeIn 0.3s ease;
+
+  @media (max-width: 800px) {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    padding: calc(var(--pad) + 2.4rem + 0.875rem) var(--pad)
+      calc(var(--pad-bottom) + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    background: var(--bg);
+  }
 }
 
 :global(body[data-header-state="menu-open"].menu-closing) .menu {
@@ -431,6 +461,11 @@
   font-weight: 300;
   line-height: 2.25rem;
   letter-spacing: -0.045rem;
+
+  @media (max-width: 800px) {
+    font-style: italic;
+    font-size: 2rem;
+  }
 }
 
 :global(body[data-header-state="menu-open"]) .menuList {
@@ -439,6 +474,10 @@
 
 :global(body[data-header-state="menu-open"]) .menuLink {
   font-size: 1.25rem;
+
+  @media (max-width: 800px) {
+    font-size: 1.5rem;
+  }
 }
 
 :global(body[data-header-state="menu-open"]) .menuLink:hover {
@@ -453,4 +492,18 @@
   top: var(--pad);
   right: var(--pad);
   left: auto;
+
+  @media (max-width: 800px) {
+    top: calc(var(--pad) / 2 - 0.0625rem);
+  }
+}
+
+@media (max-width: 800px) {
+  :global(body[data-header-state="menu-open"]) .headerLogo {
+    z-index: 41;
+  }
+
+  :global(body[data-header-state="menu-open"]) .topLineLeft {
+    z-index: 39;
+  }
 }

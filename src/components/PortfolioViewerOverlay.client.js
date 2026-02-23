@@ -19,22 +19,26 @@ function getFirstVisibleIndex(index, len) {
   return Math.max(0, Math.min(maxFirst, index - 1));
 }
 
+const defaultDesc = {
+  ru: "Создание мультимедийного пространства для регионального филиала Национального центра «Россия» во Владивостоке, Приморский Край.",
+  en: "Development of a multimedia space for the regional branch of the \"Rossiya\" National Centre in Vladivostok, Primorsky Krai.",
+  cn: "为位于滨海边疆区符拉迪沃斯托克的“ROSSIYA”国家中心区域分部打造多媒体空间。",
+};
+
 export default function PortfolioViewerOverlay({ cards, initialIndex, onClose }) {
   const slides = useMemo(() => cards ?? [], [cards]);
-  const carouselMediaSrc = "/images/videoPlaceholder.png";
   const CAROUSEL_DURATION = 1;
   const WIPE_DURATION = 0.5;
   const MASK_DURATION = 0.5;
   const [mounted, setMounted] = useState(false);
   const [isMax1200, setIsMax1200] = useState(false);
-  const [mediaAspectRatios, setMediaAspectRatios] = useState({});
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewActiveIndex, setPreviewActiveIndex] = useState(0);
   const [displayIndex, setDisplayIndex] = useState(0);
   const mediaAspectRatio =
-    mediaAspectRatios[previewActiveIndex] ??
-    mediaAspectRatios[activeIndex] ??
-    mediaAspectRatios[displayIndex] ??
+    slides[previewActiveIndex]?.videoAspectRatio ??
+    slides[activeIndex]?.videoAspectRatio ??
+    slides[displayIndex]?.videoAspectRatio ??
     16 / 9;
   const startIndex = useMemo(
     () => Math.max(0, Math.min(slides.length - 1, initialIndex ?? 0)),
@@ -56,6 +60,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const activeIndexRef = useRef(0);
   const infoRef = useRef(null);
   const mediaRef = useRef(null);
+  const videoRefs = useRef([]);
   const didInitRef = useRef(false);
   const fadeTlRef = useRef(null);
 
@@ -73,50 +78,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
-
-  useEffect(() => {
-    if (!slides.length) {
-      setMediaAspectRatios({});
-      return;
-    }
-
-    let cancelled = false;
-    const ratios = {};
-    let pending = slides.length;
-
-    const completeOne = () => {
-      pending -= 1;
-      if (!pending && !cancelled) {
-        setMediaAspectRatios(ratios);
-      }
-    };
-
-    slides.forEach((slide, idx) => {
-      const src = carouselMediaSrc;
-      if (!src) {
-        ratios[idx] = 16 / 9;
-        completeOne();
-        return;
-      }
-
-      const img = new window.Image();
-      img.onload = () => {
-        const w = img.naturalWidth || 0;
-        const h = img.naturalHeight || 0;
-        ratios[idx] = w > 0 && h > 0 ? w / h : 16 / 9;
-        completeOne();
-      };
-      img.onerror = () => {
-        ratios[idx] = 16 / 9;
-        completeOne();
-      };
-      img.src = getAssetUrl(src);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [carouselMediaSrc, slides]);
 
   useLayoutEffect(() => {
     if (!mounted) return;
@@ -183,6 +144,20 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    videoRefs.current.forEach((videoEl, idx) => {
+      if (!videoEl) return;
+      if (idx === previewActiveIndex) {
+        const playPromise = videoEl.play();
+        if (playPromise?.catch) playPromise.catch(() => {});
+      } else {
+        videoEl.pause();
+      }
+    });
+  }, [mounted, previewActiveIndex, slides.length]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -461,6 +436,9 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
   const active = slides[displayIndex] ?? slides[0];
   const trackItems = slides;
+  const activeDesc = active?.desc ?? defaultDesc;
+  const isAtStart = previewActiveIndex <= 0;
+  const isAtEnd = previewActiveIndex >= slides.length - 1;
 
   return createPortal(
     <div className={styles.overlay} ref={overlayRef} role="dialog" aria-modal="true">
@@ -473,16 +451,9 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
           <p className={styles.date}>{active?.date}</p>
           <p className={styles.title}>{active?.title}</p>
           <div className={styles.desc}>
-            <p>
-              Создание мультимедийного пространства для регионального филиала Национального центра «Россия» во Владивостоке, Приморский Край.
-            </p>
-            <p>
-              Development of a multimedia space for the regional branch of the
-              &quot;Rossiya&quot; National Centre in Vladivostok, Primorsky Krai.
-            </p>
-            <p>
-              为位于滨海边疆区符拉迪沃斯托克的“ROSSIYA”国家中心区域分部打造多媒体空间。
-            </p>
+            <p>{activeDesc.ru}</p>
+            <p>{activeDesc.en}</p>
+            <p>{activeDesc.cn}</p>
           </div>
         </div>
 
@@ -497,15 +468,28 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               {slides.map((c, idx) => (
                 <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
                   <div className={styles.mediaInner}>
-                    {c?.imageSrc ? (
-                      <Image
-                        className={styles.mediaImage}
-                        src={carouselMediaSrc}
-                        alt=""
-                        fill
-                        sizes={isMax1200 ? "100vw" : "50vw"}
+                    {(() => {
+                      const isActiveMedia = idx === previewActiveIndex;
+                      const shouldLoadVideo =
+                        Math.abs(idx - previewActiveIndex) <= 1;
+                      if (!c?.videoSrc || !shouldLoadVideo) return null;
+                      return (
+                      <video
+                        ref={(el) => {
+                          videoRefs.current[idx] = el;
+                        }}
+                        className={styles.mediaVideo}
+                        src={getAssetUrl(c.videoSrc)}
+                        aria-label={c.videoTitle || "Project video"}
+                        controls={isActiveMedia}
+                        muted
+                        loop
+                        playsInline
+                        preload={isActiveMedia ? "metadata" : "none"}
+                        poster={c?.imageSrc ? getAssetUrl(c.imageSrc) : undefined}
                       />
-                    ) : null}
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -545,9 +529,11 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
           <div className={styles.carouselActions}>
             <button
               type="button"
-              className={styles.prevBtn}
+              className={`${styles.prevBtn} ${isAtStart ? styles.navBtnHidden : ""}`}
               onClick={() => go(-1)}
               aria-label="Previous project"
+              aria-hidden={isAtStart}
+              disabled={isAtStart}
             >
               <Image
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
@@ -565,9 +551,11 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
             <button
               type="button"
-              className={styles.nextBtn}
+              className={`${styles.nextBtn} ${isAtEnd ? styles.navBtnHidden : ""}`}
               onClick={() => go(1)}
               aria-label="Next project"
+              aria-hidden={isAtEnd}
+              disabled={isAtEnd}
             >
             <span className={styles.btnText}>
               Следующая работа · Next project ·
