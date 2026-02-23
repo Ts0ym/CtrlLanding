@@ -453,7 +453,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
           <div className={styles.desc}>
             <p>{activeDesc.ru}</p>
             <p>{activeDesc.en}</p>
-            <p>{activeDesc.cn}</p>
+            <p className={styles.descCh}>{activeDesc.cn}</p>
           </div>
         </div>
 

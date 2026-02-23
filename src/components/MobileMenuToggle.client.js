@@ -41,16 +41,13 @@ export default function MobileMenuToggle() {
     if (isTransitioning) return;
 
     if (open) {
-      /* Start close animation */
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
       setIsTransitioning(true);
       document.body.classList.add("menu-closing");
+      setOpen(false);
 
       closeTimeoutRef.current = setTimeout(() => {
         closeTimeoutRef.current = null;
-        /* Both state updates are batched; useLayoutEffect will fire
-           synchronously after commit (before paint) to set the correct state. */
-        setOpen(false);
         setIsTransitioning(false);
       }, 300);
     } else {
@@ -69,10 +66,10 @@ export default function MobileMenuToggle() {
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
       setIsTransitioning(true);
       document.body.classList.add("menu-closing");
+      setOpen(false);
 
       closeTimeoutRef.current = setTimeout(() => {
         closeTimeoutRef.current = null;
-        setOpen(false);
         setIsTransitioning(false);
       }, 300);
     };

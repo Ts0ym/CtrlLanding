@@ -46,7 +46,7 @@ export default function IntroAnimation() {
       const arrow = document.querySelector('[data-anim="arrow"]');
 
       gsap.set(logo, { yPercent: 100, opacity: 0 });
-      gsap.set(frameLines, { scaleX: 0, transformOrigin: "0% 50%" });
+      gsap.set(frameLines, { scaleX: 0, opacity: 0, transformOrigin: "0% 50%" });
       gsap.set(heroLines, { yPercent: 100, opacity: 0 });
       gsap.set([menuTitle, menuList], { yPercent: 100, opacity: 0 });
       gsap.set(arrow, { y: -12, opacity: 0 });
@@ -60,7 +60,7 @@ export default function IntroAnimation() {
         duration: 0.7,
         ease: "power1.inOut",
       })
-        .to(frameLines, { scaleX: 1, duration: 1.2, ease: "power1.inOut" }, ">-0.1")
+        .to(frameLines, { scaleX: 1, opacity: 1, duration: 1.2, ease: "power1.inOut" }, ">-0.1")
         .to(
           heroLines,
           {

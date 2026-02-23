@@ -85,50 +85,56 @@ export default function MenuNav() {
     const href = link.getAttribute("href");
     if (!href) return;
 
+    e.preventDefault();
     window.dispatchEvent(new CustomEvent("mobile-menu:close"));
-    // Always close portfolio overlay before menu navigation.
     window.dispatchEvent(new CustomEvent("portfolio-viewer:close"));
     setActiveHref(href);
 
-    const isMobileMenu = window.matchMedia("(max-width: 800px)").matches;
-    if (isMobileMenu) {
-      // On mobile rely on native hash navigation for stable anchor scrolling.
-      return;
-    }
+    const doScroll = () => {
+      const isMobile = window.matchMedia("(max-width: 800px)").matches;
+      const smoother = ScrollSmoother.get?.();
+      const current = smoother?.scrollTop?.() ?? window.scrollY ?? 0;
 
-    e.preventDefault();
+      ScrollTrigger.refresh();
 
-    const smoother = ScrollSmoother.get?.();
-    const current = smoother?.scrollTop?.() ?? window.scrollY ?? 0;
+      if (href === "#home") {
+        if (smoother?.scrollTo) smoother.scrollTo(0, true);
+        else window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
 
-    if (href === "#home") {
-      const targetTop = 0;
+      if (href === "#about") {
+        const stage = document.querySelector('[data-scroll="stage"]');
+        const stageST = stage
+          ? ScrollTrigger.getAll().find((t) => t.trigger === stage)
+          : null;
+        if (stageST) {
+          const target = stageST.end - 1;
+          if (smoother?.scrollTo) smoother.scrollTo(target, true);
+          else window.scrollTo({ top: target, behavior: "smooth" });
+        } else {
+          const aboutEl = document.querySelector("#about");
+          if (aboutEl) aboutEl.scrollIntoView({ behavior: "smooth" });
+        }
+        return;
+      }
+
+      if (isMobile) {
+        const targetEl = document.querySelector(href);
+        if (targetEl) targetEl.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+
+      const targetEl = document.querySelector(href);
+      if (!targetEl) return;
+      const rectTop = targetEl.getBoundingClientRect().top;
+      const targetTop = rectTop + current;
+
       if (smoother?.scrollTo) smoother.scrollTo(targetTop, true);
       else window.scrollTo({ top: targetTop, behavior: "smooth" });
-      requestAnimationFrame(() => ScrollTrigger.refresh());
-      return;
-    }
+    };
 
-    if (href === "#about") {
-      const stage = document.querySelector('[data-scroll="stage"]');
-      const stageST = stage
-        ? ScrollTrigger.getAll().find((t) => t.trigger === stage)
-        : null;
-      const target = stageST ? stageST.end - 1 : current + window.innerHeight;
-      if (smoother?.scrollTo) smoother.scrollTo(target, true);
-      else window.scrollTo({ top: target, behavior: "smooth" });
-      requestAnimationFrame(() => ScrollTrigger.refresh());
-      return;
-    }
-
-    const targetEl = document.querySelector(href);
-    if (!targetEl) return;
-    const rectTop = targetEl.getBoundingClientRect().top;
-    const targetTop = rectTop + current;
-
-    if (smoother?.scrollTo) smoother.scrollTo(targetTop, true);
-    else window.scrollTo({ top: targetTop, behavior: "smooth" });
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    requestAnimationFrame(() => requestAnimationFrame(doScroll));
   }, []);
 
   return (

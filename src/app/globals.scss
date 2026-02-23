@@ -57,6 +57,15 @@ body[data-intro-active] [data-anim="header-logo"] {
   visibility: hidden !important;
 }
 
+[data-anim="logo"],
+[data-anim="line"],
+[data-anim="hero-headline-line"],
+[data-anim="menu-title"],
+[data-anim="menu-list"],
+[data-anim="arrow"] {
+  opacity: 0;
+}
+
 .srOnly {
   position: absolute !important;
   width: 0.0625rem !important;
