@@ -10,7 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    NEXT_PUBLIC_BASE_PATH: "",
+    NEXT_PUBLIC_BASE_PATH: "/CtrlLanding",
   },
   devIndicators: {
     buildActivity: false,
