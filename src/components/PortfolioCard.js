@@ -1,5 +1,6 @@
 import styles from "./PortfolioCard.module.scss";
 import Image from "next/image";
+import { getAssetUrl } from "../lib/assetUrl";
 
 export default function PortfolioCard({ card, onClick }) {
   return (
@@ -13,7 +14,7 @@ export default function PortfolioCard({ card, onClick }) {
         <div className={styles.imageWrap}>
           <Image
             className={styles.image}
-            src={card.imageSrc}
+            src={getAssetUrl(card.imageSrc)}
             alt=""
             fill
             sizes="(max-width: 800px) 100vw, 33vw"

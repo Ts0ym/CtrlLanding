@@ -15,6 +15,7 @@ import MenuNav from "../components/MenuNav.client";
 import PortfolioAnimations from "./animations/PortfolioAnimations";
 import MobileMenuToggle from "../components/MobileMenuToggle.client";
 import styles from "./layout.module.scss";
+import { getAssetUrl } from "../lib/assetUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,7 +88,7 @@ export default function RootLayout({ children }) {
           >
             <Image
               className={styles.headerLogoImg}
-              src="/svg/ctrl..svg"
+              src={getAssetUrl("/svg/ctrl..svg")}
               alt=""
               width={180}
               height={32}

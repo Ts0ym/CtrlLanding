@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import Image from "next/image";
+import { getAssetUrl } from "../lib/assetUrl";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -58,7 +59,7 @@ export default function ScrollDownArrow({ className, iconClassName }) {
       onClick={onClick}
       aria-label="Scroll to next section"
     >
-      <Image className={iconClassName} src="/svg/arrow.svg" alt="" width={15} height={16} />
+      <Image className={iconClassName} src={getAssetUrl("/svg/arrow.svg")} alt="" width={15} height={16} />
     </button>
   );
 }

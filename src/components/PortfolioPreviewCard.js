@@ -1,5 +1,6 @@
 import styles from "./PortfolioPreviewCard.module.scss";
 import Image from "next/image";
+import { getAssetUrl } from "../lib/assetUrl";
 
 export default function PortfolioPreviewCard({
   card,
@@ -18,7 +19,7 @@ export default function PortfolioPreviewCard({
       <div className={styles.imageWrap}>
         <Image
           className={styles.image}
-          src={card.imageSrc}
+          src={getAssetUrl(card.imageSrc)}
           alt=""
           fill
           sizes="(max-width: 1200px) 28vw, 16vw"

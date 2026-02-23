@@ -537,7 +537,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             >
               <Image
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-                src="/svg/arrow.svg"
+                src={getAssetUrl("/svg/arrow.svg")}
                 alt=""
                 aria-hidden="true"
                 width={15}
@@ -563,7 +563,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             </span>
               <Image
                 className={`${styles.btnIcon} ${styles.btnIconRight}`}
-                src="/svg/arrow.svg"
+                src={getAssetUrl("/svg/arrow.svg")}
                 alt=""
                 aria-hidden="true"
                 width={15}
@@ -576,7 +576,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
         <button type="button" className={styles.backBtn} onClick={handleClose}>
           <Image
             className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-            src="/svg/arrow.svg"
+            src={getAssetUrl("/svg/arrow.svg")}
             alt=""
             aria-hidden="true"
             width={15}
