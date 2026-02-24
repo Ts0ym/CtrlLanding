@@ -11,6 +11,9 @@ export default function MenuNav() {
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
+    const isMobileTransition = Boolean(
+      ScrollTrigger.isTouch || window.matchMedia("(max-width: 768px)").matches
+    );
     const stage = document.querySelector('[data-scroll="stage"]');
     const work = document.querySelector("#work");
     const contact = document.querySelector("#contact");
@@ -21,7 +24,7 @@ export default function MenuNav() {
       stageTrigger = ScrollTrigger.create({
         trigger: stage,
         start: "top top",
-        end: "+=200%",
+        end: isMobileTransition ? "+=160%" : "+=200%",
         onUpdate: (self) => {
           setActiveHref(self.progress < 0.5 ? "#home" : "#about");
         },
@@ -105,11 +108,27 @@ export default function MenuNav() {
 
       if (href === "#about") {
         const stage = document.querySelector('[data-scroll="stage"]');
-        const stageST = stage
-          ? ScrollTrigger.getAll().find((t) => t.trigger === stage)
-          : null;
+        const stageST =
+          ScrollTrigger.getById?.("stage-transition") ||
+          (stage
+            ? ScrollTrigger.getAll().find(
+                (t) => t.trigger === stage && (t.vars?.pin || t.pin)
+              )
+            : null);
         if (stageST) {
-          const target = stageST.end - 1;
+          const range = Math.max(0, stageST.end - stageST.start);
+          const tlDuration =
+            stageST.animation?.totalDuration?.() ??
+            stageST.animation?.duration?.() ??
+            2;
+          // `About` is fully visible close to the end of the stage-transition timeline.
+          // Land just before the end to avoid slipping into the next section.
+          const targetTime = Math.max(0, tlDuration - 0.01);
+          const targetProgress = tlDuration > 0 ? targetTime / tlDuration : 0.99;
+          const target = Math.min(
+            stageST.end - 1,
+            stageST.start + range * targetProgress + 1
+          );
           if (smoother?.scrollTo) smoother.scrollTo(target, true);
           else window.scrollTo({ top: target, behavior: "smooth" });
         } else {
@@ -239,4 +258,3 @@ export default function MenuNav() {
     </nav>
   );
 }
-

@@ -13,6 +13,9 @@ const HEADER_SHIFT_START = 1;
 export default function ScrollTransitions() {
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
+    const useInstantScrub = Boolean(ScrollTrigger.isTouch || isMobileViewport);
+    const useMobilePerfMode = useInstantScrub;
 
     let tl;
     let tickerFn;
@@ -76,9 +79,19 @@ export default function ScrollTransitions() {
 
       const heroOutEls = gsap.utils.toArray('[data-scroll="hero-out"]');
       const aboutInEls = gsap.utils.toArray('[data-scroll="about-in"]');
+      const heroLogoEls = heroOutEls.filter((el) => el?.dataset?.anim === "logo");
+      const heroTextEls = heroOutEls.filter((el) => el?.dataset?.anim !== "logo");
 
-      gsap.set(heroOutEls, { yPercent: 0, opacity: 1 });
-      gsap.set(aboutInEls, { yPercent: 120, opacity: 0 });
+      gsap.set(heroOutEls, {
+        yPercent: 0,
+        opacity: 1,
+        force3D: useMobilePerfMode,
+      });
+      gsap.set(aboutInEls, {
+        yPercent: 120,
+        opacity: useMobilePerfMode ? 1 : 0,
+        force3D: useMobilePerfMode,
+      });
       gsap.set(aboutSection, { autoAlpha: 0, pointerEvents: "none" });
       gsap.set(root, {
         "--header-shift": "0rem",
@@ -90,24 +103,69 @@ export default function ScrollTransitions() {
           id: "stage-transition",
           trigger: stage,
           start: "top top",
-          end: "+=200%",
-          scrub: 1,
+          end: useMobilePerfMode ? "+=160%" : "+=200%",
+          // On mobile/touch, scrub smoothing looks like "self-scrolling" when re-entering the pinned stage.
+          scrub: useInstantScrub ? true : 1,
           pin: true,
-          anticipatePin: 1,
+          anticipatePin: useInstantScrub ? 0 : 1,
           invalidateOnRefresh: true,
         },
         defaults: { ease: "none" },
       });
 
-      tl.to(heroOutEls, { yPercent: 120, opacity: 0, stagger: 0.05, duration: 1 }, 0)
-        .set(aboutSection, { autoAlpha: 1, pointerEvents: "auto" }, 1)
-        .to(aboutInEls, { yPercent: 0, opacity: 1, stagger: 0.1, duration: 1 }, 1);
+      if (useMobilePerfMode) {
+        tl.to(
+          heroTextEls,
+          { yPercent: 120, stagger: 0, duration: 1, force3D: true },
+          0
+        );
 
-      tl.to(root, {
-        "--header-shift": "2.4rem",
-        "--burger-top": "var(--pad)",
-        duration: 0.4,
-      }, 1);
+        if (heroLogoEls.length) {
+          tl.to(
+            heroLogoEls,
+            { yPercent: 40, opacity: 0, duration: 0.9, force3D: true },
+            0.05
+          );
+        }
+
+        tl.set(aboutSection, { autoAlpha: 1, pointerEvents: "auto" }, 1).to(
+          aboutInEls,
+          { yPercent: 0, opacity: 1, stagger: 0, duration: 0.9, force3D: true },
+          1
+        );
+
+        // Avoid layout-heavy header variable tweening during touch scrub.
+        tl.set(
+          root,
+          {
+            "--header-shift": "2.4rem",
+            "--burger-top": "var(--pad)",
+          },
+          1
+        );
+      } else {
+        tl.to(
+          heroOutEls,
+          { yPercent: 120, opacity: 0, stagger: 0.05, duration: 1 },
+          0
+        )
+          .set(aboutSection, { autoAlpha: 1, pointerEvents: "auto" }, 1)
+          .to(
+            aboutInEls,
+            { yPercent: 0, opacity: 1, stagger: 0.1, duration: 1 },
+            1
+          );
+
+        tl.to(
+          root,
+          {
+            "--header-shift": "2.4rem",
+            "--burger-top": "var(--pad)",
+            duration: 0.4,
+          },
+          1
+        );
+      }
 
       /* Sync header state every frame using the scrubbed tl.time() */
       tickerFn = () => syncHeaderState();

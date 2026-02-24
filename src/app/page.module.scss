@@ -3,6 +3,12 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    /* Stable viewport height avoids pin/scrub jumps when the mobile browser UI expands/collapses. */
+    height: 100vh;
+    height: 100svh;
+  }
 }
 
 .sectionHeadline {
@@ -41,4 +47,3 @@
     font-size: 2rem;
   }
 }
-

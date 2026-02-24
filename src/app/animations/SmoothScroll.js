@@ -13,6 +13,7 @@ const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 export default function SmoothScroll() {
   useLayoutEffect(() => {
     const prefersReducedMotion = window.matchMedia(REDUCED_MOTION).matches;
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
     // При «Уменьшить движение» используем обычный скролл (как на мобильном).
     if (prefersReducedMotion) {
