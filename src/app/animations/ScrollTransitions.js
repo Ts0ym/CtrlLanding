@@ -16,6 +16,8 @@ export default function ScrollTransitions() {
     const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
     const useInstantScrub = Boolean(ScrollTrigger.isTouch || isMobileViewport);
     const useMobilePerfMode = useInstantScrub;
+    const STAGE_SCROLL_END_DESKTOP = "+=130%";
+    const STAGE_SCROLL_END_MOBILE = "+=110%";
 
     let tl;
     let tickerFn;
@@ -103,9 +105,10 @@ export default function ScrollTransitions() {
           id: "stage-transition",
           trigger: stage,
           start: "top top",
-          end: useMobilePerfMode ? "+=160%" : "+=200%",
+          // Shorter range = stronger scroll influence (less wheel/touch distance to finish Hero -> About).
+          end: useMobilePerfMode ? STAGE_SCROLL_END_MOBILE : STAGE_SCROLL_END_DESKTOP,
           // On mobile/touch, scrub smoothing looks like "self-scrolling" when re-entering the pinned stage.
-          scrub: useInstantScrub ? true : 1,
+          scrub: useInstantScrub ? true : 0.2,
           pin: true,
           anticipatePin: useInstantScrub ? 0 : 1,
           invalidateOnRefresh: true,
@@ -190,4 +193,3 @@ export default function ScrollTransitions() {
 
   return null;
 }
-

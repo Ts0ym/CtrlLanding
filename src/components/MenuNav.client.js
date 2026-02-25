@@ -14,6 +14,9 @@ export default function MenuNav() {
     const isMobileTransition = Boolean(
       ScrollTrigger.isTouch || window.matchMedia("(max-width: 768px)").matches
     );
+    // Keep in sync with ScrollTransitions.js, otherwise the menu switches to #work too early.
+    const STAGE_SCROLL_END_DESKTOP = "+=130%";
+    const STAGE_SCROLL_END_MOBILE = "+=110%";
     const stage = document.querySelector('[data-scroll="stage"]');
     const work = document.querySelector("#work");
     const contact = document.querySelector("#contact");
@@ -24,7 +27,7 @@ export default function MenuNav() {
       stageTrigger = ScrollTrigger.create({
         trigger: stage,
         start: "top top",
-        end: isMobileTransition ? "+=160%" : "+=200%",
+        end: isMobileTransition ? STAGE_SCROLL_END_MOBILE : STAGE_SCROLL_END_DESKTOP,
         onUpdate: (self) => {
           setActiveHref(self.progress < 0.5 ? "#home" : "#about");
         },

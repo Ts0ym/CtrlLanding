@@ -9,6 +9,9 @@ gsap.registerPlugin(ScrollTrigger);
 export default function PortfolioAnimations() {
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Lower % = trigger later (headline appears when it is higher in the viewport).
+    const HEADLINE_FADE_START = "top 60%";
+    const HEADLINE_FADE_END = "top 35%";
 
     const els = gsap.utils.toArray(
       '[data-anim="portfolio-headline"], [data-anim="contacts-headline"]',
@@ -23,8 +26,8 @@ export default function PortfolioAnimations() {
         ease: "none",
         scrollTrigger: {
           trigger: el,
-          start: "top 70%",
-          end: "top 45%",
+          start: HEADLINE_FADE_START,
+          end: HEADLINE_FADE_END,
           scrub: true,
         },
       });
@@ -40,4 +43,3 @@ export default function PortfolioAnimations() {
 
   return null;
 }
-
