@@ -69,6 +69,7 @@ export const metadata = {
     "video mapping",
     "immersive experiences",
   ],
+  manifest: "/manifest.json",
 };
 
 export const viewport = {
@@ -79,6 +80,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="apple-mobile-web-app-title" content="ctrl." />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} ${notoJp.variable} ${notoSc.variable}`}
         data-header-state="hero"
