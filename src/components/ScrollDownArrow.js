@@ -9,6 +9,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 export default function ScrollDownArrow({ className, iconClassName }) {
   const onClick = useCallback((e) => {
     e.preventDefault();
+    window.__suppressStageSnapUntil =
+      (window.performance?.now?.() ?? Date.now()) + 1200;
 
     const smoother = ScrollSmoother.get?.();
     const current = smoother?.scrollTop?.() ?? window.scrollY ?? 0;
@@ -63,4 +65,3 @@ export default function ScrollDownArrow({ className, iconClassName }) {
     </button>
   );
 }
-

@@ -18,6 +18,20 @@ export default function ScrollTransitions() {
     const useMobilePerfMode = useInstantScrub;
     const STAGE_SCROLL_END_DESKTOP = "+=130%";
     const STAGE_SCROLL_END_MOBILE = "+=110%";
+    const STAGE_SCRUB_DESKTOP = 1;
+    const stageSnap = {
+      snapTo: (value) => {
+        const now = window.performance?.now?.() ?? Date.now();
+        const suppressedUntil = window.__suppressStageSnapUntil ?? 0;
+
+        if (now < suppressedUntil) return value;
+        return value < 0.5 ? 0 : 1;
+      },
+      delay: 0.05,
+      duration: useMobilePerfMode ? { min: 0.14, max: 0.22 } : { min: 0.18, max: 0.3 },
+      ease: "power1.out",
+      inertia: false,
+    };
 
     let tl;
     let tickerFn;
@@ -107,8 +121,9 @@ export default function ScrollTransitions() {
           start: "top top",
           // Shorter range = stronger scroll influence (less wheel/touch distance to finish Hero -> About).
           end: useMobilePerfMode ? STAGE_SCROLL_END_MOBILE : STAGE_SCROLL_END_DESKTOP,
-          // On mobile/touch, scrub smoothing looks like "self-scrolling" when re-entering the pinned stage.
-          scrub: useInstantScrub ? true : 0.2,
+          // Add extra inertia only for the Hero -> About transition.
+          scrub: useInstantScrub ? true : STAGE_SCRUB_DESKTOP,
+          snap: stageSnap,
           pin: true,
           anticipatePin: useInstantScrub ? 0 : 1,
           invalidateOnRefresh: true,

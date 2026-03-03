@@ -97,6 +97,10 @@ export default function MenuNav() {
     setActiveHref(href);
 
     const doScroll = () => {
+      // Prevent stage snap from hijacking programmatic section jumps.
+      window.__suppressStageSnapUntil =
+        (window.performance?.now?.() ?? Date.now()) + 1200;
+
       const isMobile = window.matchMedia("(max-width: 800px)").matches;
       const smoother = ScrollSmoother.get?.();
       const current = smoother?.scrollTop?.() ?? window.scrollY ?? 0;
