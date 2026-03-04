@@ -57,8 +57,10 @@ const notoSc = Noto_Sans_SC({
 });
 
 export const metadata = {
-  title: "Ctrl. - Выставки, музеи, интерактивные инсталляции, контент",
-  description: "Студия Ctrl. Создаем выставки, музейные решения, интерактивные инсталляции и мультимедийный контент.",
+  title:
+    "CTRL.moscow — студия разработки интерактивных музейных инсталляций и мультимедийных экспозиций",
+  description:
+    "Создаём интерактивные стенды, цифровые экспозиции, иммерсивные пространства, мультимедийный контент, 3D-графику, видео и программные решения для музеев, выставок, форумов и общественных пространств.",
   keywords: [
     "выставки",
     "музеи",
@@ -79,7 +81,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <head>
         <meta name="apple-mobile-web-app-title" content="ctrl." />
       </head>
@@ -123,7 +125,9 @@ export default function RootLayout({ children }) {
           />
           <MobileMenuToggle />
 
-          <MenuNav />
+          <div data-nosnippet>
+            <MenuNav />
+          </div>
 
           <ScrollDownArrow
             className={styles.scrollHint}
