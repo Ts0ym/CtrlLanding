@@ -104,27 +104,34 @@ export default function AdminEditorPage() {
       headers,
     });
 
-    if (!response.ok) {
-      let message = "Request failed";
+    const responseText = response.status === 204 ? "" : await response.text();
+    let payload = null;
 
+    if (responseText) {
       try {
-        const payload = await response.json();
-        message =
-          payload.message ||
-          payload.error ||
-          (Array.isArray(payload.message) ? payload.message.join(", ") : message);
+        payload = JSON.parse(responseText);
       } catch {
-        message = await response.text();
+        payload = null;
       }
+    }
+
+    if (!response.ok) {
+      const message =
+        (Array.isArray(payload?.message)
+          ? payload.message.join(", ")
+          : payload?.message) ||
+        payload?.error ||
+        responseText ||
+        "Request failed";
 
       throw new Error(message || "Request failed");
     }
 
-    if (response.status === 204) {
+    if (!responseText) {
       return null;
     }
 
-    return response.json();
+    return payload ?? responseText;
   };
 
   const loadProjects = async (sessionToken = token, preferredProjectId = null) => {
