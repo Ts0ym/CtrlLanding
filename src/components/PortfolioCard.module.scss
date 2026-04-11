@@ -31,6 +31,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1);
+  transform-origin: center;
+  transition: transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardButton:hover .image,
+  .cardButton:focus-visible .image {
+    transform: scale(1.06);
+  }
 }
 
 .meta {
@@ -87,4 +97,3 @@
   }
 
 }
-

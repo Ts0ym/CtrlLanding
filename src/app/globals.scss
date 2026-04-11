@@ -30,6 +30,12 @@ body {
   color: var(--fg);
 }
 
+html[data-portfolio-viewer="open"],
+body[data-portfolio-viewer="open"] {
+  background: var(--bg);
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
@@ -65,6 +71,18 @@ body[data-intro-active] [data-anim="header-logo"] {
 [data-anim="arrow"],
 [data-anim="burger"] {
   opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-anim="logo"],
+  [data-anim="line"],
+  [data-anim="hero-headline-line"],
+  [data-anim="menu-title"],
+  [data-anim="menu-list"],
+  [data-anim="arrow"],
+  [data-anim="burger"] {
+    opacity: 1;
+  }
 }
 
 .srOnly {

@@ -5,6 +5,15 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    position: relative;
+    inset: auto;
+    min-height: 100svh;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
 }
 
 .aboutHeadline {
@@ -60,8 +69,8 @@
   }
 
   @media (max-width: 800px) {
-    font-size: 2.2rem;
-    line-height: 2.2rem;
+    font-size: 1.8rem;
+    line-height: 1.8rem;
   }
 }
 
@@ -81,8 +90,8 @@
   letter-spacing: -0.07875rem;
 
   @media (max-width: 800px) {
-    font-size: 1.8rem;
-    line-height: 2rem;
+    font-size: 1.5rem;
+    line-height: 1.7rem;
   }
 }
 

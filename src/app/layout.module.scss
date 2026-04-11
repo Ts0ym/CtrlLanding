@@ -1,5 +1,28 @@
 .shell {
   min-height: 100vh;
+  position: relative;
+}
+
+.adminMain {
+  min-height: 100vh;
+}
+
+.shell::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: var(--bg);
+  pointer-events: none;
+  z-index: 19;
+}
+
+:global(body[data-webview="telegram"]) .shell::before {
+  @media (max-width: 800px) {
+    height: calc(var(--pad) + 2.4rem + env(safe-area-inset-top, 0px));
+  }
 }
 
 :global(:root) {
@@ -63,7 +86,10 @@
   height: calc(var(--pad) + var(--header-shift) + var(--rule-thickness));
 
   @media (max-width: 800px) {
-    height: calc(var(--pad) + 2.4rem + var(--rule-thickness));
+    height: calc(
+      var(--pad) + 2.4rem + var(--rule-thickness) +
+        env(safe-area-inset-top, 0px)
+    );
   }
 }
 
@@ -94,11 +120,32 @@
   left: var(--pad);
   z-index: 32;
   pointer-events: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
   transform-origin: 0% 50%;
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
 
   @media (max-width: 800px) {
     top: calc(var(--pad)/2);
+  }
+}
+
+:global(body[data-portfolio-viewer="open"]) .headerLogo {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+:global(body[data-portfolio-viewer-stage="opened"]) .smoothWrapper,
+:global(body[data-portfolio-viewer-stage="opened"]) .scrollHint {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 1200px) {
+  :global(body[data-portfolio-viewer-stage="opened"]) .footerBg {
+    z-index: 19;
   }
 }
 

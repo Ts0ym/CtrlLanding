@@ -2,6 +2,12 @@
   position: absolute;
   inset: 0;
   z-index: 2;
+
+  @media (prefers-reduced-motion: reduce) {
+    position: relative;
+    inset: auto;
+    min-height: 100svh;
+  }
 }
 
 .headline {

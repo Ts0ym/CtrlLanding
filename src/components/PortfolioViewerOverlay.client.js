@@ -24,6 +24,275 @@ const defaultDesc = {
   en: "Development of a multimedia space for the regional branch of the \"Rossiya\" National Centre in Vladivostok, Primorsky Krai.",
   cn: "为位于滨海边疆区符拉迪沃斯托克的“ROSSIYA”国家中心区域分部打造多媒体空间。",
 };
+const DEFAULT_VIDEO_VOLUME = 0.5;
+const VIDEO_VOLUME_STORAGE_KEY = "portfolio-viewer-volume";
+const VIDEO_MUTED_STORAGE_KEY = "portfolio-viewer-muted";
+const PORTFOLIO_VIEWER_HISTORY_KEY = "__portfolioViewer";
+
+function clampVolume(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return DEFAULT_VIDEO_VOLUME;
+  return Math.max(0, Math.min(1, num));
+}
+
+function isAbsoluteUrl(value) {
+  return /^https?:\/\//i.test(value);
+}
+
+function resolveMediaSource(videoSrc) {
+  if (!videoSrc) return null;
+
+  if (isAbsoluteUrl(videoSrc)) {
+    return videoSrc;
+  }
+
+  return getAssetUrl(videoSrc);
+}
+
+function getEmbedMatch(videoEmbedCode, attributeName) {
+  if (!videoEmbedCode) return null;
+
+  const match = videoEmbedCode.match(
+    new RegExp(`${attributeName}\\s*=\\s*["']([^"']+)["']`, "i"),
+  );
+
+  return match?.[1] ?? null;
+}
+
+function getVideoInputValue(value) {
+  if (!value) return "";
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("<iframe")) {
+    return getEmbedMatch(trimmed, "src") ?? "";
+  }
+
+  return trimmed;
+}
+
+function buildYouTubeEmbed(url) {
+  const host = url.hostname.replace(/^www\./, "");
+  let videoId = "";
+
+  if (host === "youtu.be") {
+    videoId = url.pathname.slice(1).split("/")[0];
+  } else if (host === "youtube.com" || host === "m.youtube.com") {
+    if (url.pathname === "/watch") {
+      videoId = url.searchParams.get("v") || "";
+    } else if (url.pathname.startsWith("/shorts/")) {
+      videoId = url.pathname.split("/")[2] || "";
+    } else if (url.pathname.startsWith("/embed/")) {
+      videoId = url.pathname.split("/")[2] || "";
+    }
+  }
+
+  if (!videoId) return null;
+
+  return {
+    src: `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`,
+    allow:
+      "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+  };
+}
+
+function buildVimeoEmbed(url) {
+  const host = url.hostname.replace(/^www\./, "");
+  if (host !== "vimeo.com" && host !== "player.vimeo.com") return null;
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const videoId =
+    host === "player.vimeo.com" && parts[0] === "video" ? parts[1] : parts[0];
+
+  if (!videoId) return null;
+
+  return {
+    src: `https://player.vimeo.com/video/${videoId}`,
+    allow:
+      "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+  };
+}
+
+function buildKinescopeEmbed(url) {
+  const host = url.hostname.replace(/^www\./, "");
+  if (
+    host !== "kinescope.io" &&
+    host !== "kinescope.ru" &&
+    host !== "player.kinescope.io"
+  ) {
+    return null;
+  }
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const embedIndex = parts.indexOf("embed");
+  const videoId =
+    embedIndex !== -1 ? parts[embedIndex + 1] : parts[parts.length - 1];
+
+  if (!videoId) return null;
+
+  return {
+    src: `https://kinescope.io/embed/${videoId}`,
+    allow:
+      "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+  };
+}
+
+function parseVkVideoIds(url) {
+  const directMatch = url.pathname.match(/video(-?\d+)_([0-9]+)/i);
+  if (directMatch) {
+    return {
+      oid: directMatch[1],
+      id: directMatch[2],
+    };
+  }
+
+  const zValue = url.searchParams.get("z") || "";
+  const zMatch = zValue.match(/video(-?\d+)_([0-9]+)/i);
+  if (zMatch) {
+    return {
+      oid: zMatch[1],
+      id: zMatch[2],
+    };
+  }
+
+  const oid = url.searchParams.get("oid");
+  const id = url.searchParams.get("id");
+  if (oid && id) {
+    return { oid, id };
+  }
+
+  return null;
+}
+
+function buildVkEmbed(url) {
+  const host = url.hostname.replace(/^www\./, "");
+  if (
+    host !== "vk.com" &&
+    host !== "m.vk.com" &&
+    host !== "vkvideo.ru"
+  ) {
+    return null;
+  }
+
+  if (url.pathname.includes("video_ext.php")) {
+    return {
+      src: url.toString(),
+      allow:
+        "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+    };
+  }
+
+  const videoIds = parseVkVideoIds(url);
+  if (!videoIds) return null;
+
+  return {
+    src: `https://vk.com/video_ext.php?oid=${videoIds.oid}&id=${videoIds.id}&hd=2`,
+    allow:
+      "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+  };
+}
+
+function resolveEmbedConfig(videoEmbedCode) {
+  const rawValue = getVideoInputValue(videoEmbedCode);
+  if (!rawValue) return null;
+
+  let parsedUrl = null;
+  try {
+    parsedUrl = new URL(rawValue);
+  } catch {
+    return {
+      src: rawValue,
+      allow:
+        "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+    };
+  }
+
+  return (
+    buildYouTubeEmbed(parsedUrl) ||
+    buildVimeoEmbed(parsedUrl) ||
+    buildKinescopeEmbed(parsedUrl) ||
+    buildVkEmbed(parsedUrl) || {
+      src: parsedUrl.toString(),
+      allow:
+        "autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write; screen-wake-lock;",
+    }
+  );
+}
+
+function hasHanScript(text) {
+  return /[\p{Script=Han}]/u.test(text);
+}
+
+function splitDescriptionText(text) {
+  return String(text)
+    .split(/\r?\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getDescriptionBlocks(desc) {
+  if (!desc) return [];
+
+  if (typeof desc === "string") {
+    return splitDescriptionText(desc).map((text, index) => ({
+      key: `text-${index}`,
+      text,
+      className: hasHanScript(text) ? styles.descCh : "",
+    }));
+  }
+
+  return [
+    { key: "ru", text: desc.ru, className: "" },
+    { key: "en", text: desc.en, className: "" },
+    { key: "cn", text: desc.cn, className: styles.descCh },
+  ].flatMap((item) =>
+    splitDescriptionText(item.text).map((text, index) => ({
+      key: `${item.key}-${index}`,
+      text,
+      className: item.className || (hasHanScript(text) ? styles.descCh : ""),
+    })),
+  );
+}
+
+function isFullscreenActive() {
+  if (typeof document === "undefined") return false;
+  return Boolean(
+    document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement,
+  );
+}
+
+function isVideoFullscreenActive(videoRefs) {
+  if (isFullscreenActive()) return true;
+
+  return videoRefs.current.some((videoEl) => {
+    if (!videoEl) return false;
+
+    return Boolean(
+      videoEl.webkitDisplayingFullscreen ||
+        videoEl.webkitPresentationMode === "fullscreen" ||
+        videoEl === document.fullscreenElement,
+    );
+  });
+}
+
+function setPortfolioViewerStage(stage) {
+  if (typeof document === "undefined") return;
+
+  const targets = [document.documentElement, document.body];
+  targets.forEach((node) => {
+    if (!node) return;
+
+    if (stage) {
+      node.setAttribute("data-portfolio-viewer-stage", stage);
+    } else {
+      node.removeAttribute("data-portfolio-viewer-stage");
+    }
+  });
+}
 
 export default function PortfolioViewerOverlay({ cards, initialIndex, onClose }) {
   const slides = useMemo(() => cards ?? [], [cards]);
@@ -35,6 +304,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewActiveIndex, setPreviewActiveIndex] = useState(0);
   const [displayIndex, setDisplayIndex] = useState(0);
+  const [activeEmbedReady, setActiveEmbedReady] = useState(false);
   const mediaAspectRatio =
     slides[previewActiveIndex]?.videoAspectRatio ??
     slides[activeIndex]?.videoAspectRatio ??
@@ -50,6 +320,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const rightColRef = useRef(null);
   const mediaTrackRef = useRef(null);
   const overlayRef = useRef(null);
+  const overlayContentRef = useRef(null);
   const overlayMaskRef = useRef(null);
   const wipeRef = useRef(null);
   const closingRef = useRef(false);
@@ -59,10 +330,15 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const animatingRef = useRef(false);
   const activeIndexRef = useRef(0);
   const infoRef = useRef(null);
+  const descRef = useRef(null);
   const mediaRef = useRef(null);
   const videoRefs = useRef([]);
+  const fullscreenVideoRef = useRef(false);
   const didInitRef = useRef(false);
   const fadeTlRef = useRef(null);
+  const touchYRef = useRef(0);
+  const savedVolumeRef = useRef(DEFAULT_VIDEO_VOLUME);
+  const savedMutedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -79,6 +355,62 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     return () => media.removeEventListener("change", update);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedVolume = window.localStorage.getItem(VIDEO_VOLUME_STORAGE_KEY);
+    const storedMuted = window.localStorage.getItem(VIDEO_MUTED_STORAGE_KEY);
+
+    if (storedVolume !== null) {
+      savedVolumeRef.current = clampVolume(storedVolume);
+    }
+
+    if (storedMuted !== null) {
+      savedMutedRef.current = storedMuted === "true";
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const overlayEl = overlayRef.current;
+    if (!overlayEl) return;
+
+    const updateViewportOffsets = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        overlayEl.style.setProperty("--viewer-bottom-ui-offset", "0px");
+        return;
+      }
+
+      const bottomOffset = Math.max(
+        0,
+        Math.round(window.innerHeight - (vv.height + vv.offsetTop)),
+      );
+
+      overlayEl.style.setProperty(
+        "--viewer-bottom-ui-offset",
+        `${bottomOffset}px`,
+      );
+    };
+
+    updateViewportOffsets();
+
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", updateViewportOffsets);
+    vv?.addEventListener("scroll", updateViewportOffsets);
+    window.addEventListener("resize", updateViewportOffsets);
+    window.addEventListener("orientationchange", updateViewportOffsets);
+
+    return () => {
+      vv?.removeEventListener("resize", updateViewportOffsets);
+      vv?.removeEventListener("scroll", updateViewportOffsets);
+      window.removeEventListener("resize", updateViewportOffsets);
+      window.removeEventListener("orientationchange", updateViewportOffsets);
+      overlayEl.style.removeProperty("--viewer-bottom-ui-offset");
+    };
+  }, [mounted]);
+
   useLayoutEffect(() => {
     if (!mounted) return;
     const mask = overlayMaskRef.current;
@@ -94,6 +426,12 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     const tl = gsap.timeline({ paused: true, defaults: { ease: "power1.inOut" } });
     tl.to(wipe, { scaleY: 1, duration: WIPE_DURATION });
     tl.to(mask, { WebkitMaskSize: "100% 100%", maskSize: "100% 100%", duration: MASK_DURATION });
+    tl.eventCallback("onComplete", () => {
+      if (!closingRef.current) {
+        setPortfolioViewerStage("opened");
+        window.dispatchEvent(new CustomEvent("portfolio-viewer:lock-scroll"));
+      }
+    });
     requestAnimationFrame(() => tl.play(0));
 
     return () => tl.kill();
@@ -101,15 +439,29 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
   useEffect(() => {
     if (!mounted) return;
-    const targets = [infoRef.current, mediaRef.current].filter(Boolean);
+    const targets = [
+      infoRef.current,
+      mediaRef.current,
+      isMax1200 ? descRef.current : null,
+    ].filter(Boolean);
     if (targets.length) {
       gsap.set(targets, { autoAlpha: 1 });
     }
     didInitRef.current = true;
-  }, [mounted]);
+  }, [mounted, isMax1200]);
 
-  const handleClose = () => {
+  const handleClose = ({ fromHistory = false } = {}) => {
     if (closingRef.current) return;
+
+    if (
+      !fromHistory &&
+      typeof window !== "undefined" &&
+      window.history.state?.[PORTFOLIO_VIEWER_HISTORY_KEY]?.open
+    ) {
+      window.history.back();
+      return;
+    }
+
     const mask = overlayMaskRef.current;
     const wipe = wipeRef.current;
     if (!mask || !wipe) {
@@ -118,6 +470,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     }
 
     closingRef.current = true;
+    setPortfolioViewerStage("closing");
     const tl = gsap.timeline({
       defaults: { ease: "power1.inOut" },
       onComplete: () => onClose?.(),
@@ -135,11 +488,15 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     tl.to(wipe, { scaleY: 0, transformOrigin: "bottom", duration: WIPE_DURATION });
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setActiveIndex(startIndex);
     setPreviewActiveIndex(startIndex);
     setDisplayIndex(startIndex);
   }, [startIndex]);
+
+  useLayoutEffect(() => {
+    setActiveEmbedReady(false);
+  }, [previewActiveIndex]);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -151,6 +508,9 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     videoRefs.current.forEach((videoEl, idx) => {
       if (!videoEl) return;
       if (idx === previewActiveIndex) {
+        videoEl.muted = savedMutedRef.current;
+        videoEl.defaultMuted = savedMutedRef.current;
+        videoEl.volume = clampVolume(savedVolumeRef.current);
         const playPromise = videoEl.play();
         if (playPromise?.catch) playPromise.catch(() => {});
       } else {
@@ -160,6 +520,68 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   }, [mounted, previewActiveIndex, slides.length]);
 
   useEffect(() => {
+    if (!mounted) return;
+
+    const syncFullscreenState = () => {
+      fullscreenVideoRef.current = isVideoFullscreenActive(videoRefs);
+      if (fullscreenVideoRef.current) {
+        wheelLockRef.current = performance.now();
+      }
+    };
+
+    const onDocumentFullscreenChange = () => {
+      syncFullscreenState();
+    };
+
+    document.addEventListener("fullscreenchange", onDocumentFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onDocumentFullscreenChange);
+    document.addEventListener("mozfullscreenchange", onDocumentFullscreenChange);
+    document.addEventListener("MSFullscreenChange", onDocumentFullscreenChange);
+
+    const cleanups = [];
+
+    videoRefs.current.forEach((videoEl) => {
+      if (!videoEl) return;
+
+      const onVideoFullscreenEnter = () => {
+        fullscreenVideoRef.current = true;
+        wheelLockRef.current = performance.now();
+      };
+
+      const onVideoFullscreenExit = () => {
+        fullscreenVideoRef.current = false;
+        wheelLockRef.current = performance.now();
+      };
+
+      videoEl.addEventListener("webkitbeginfullscreen", onVideoFullscreenEnter);
+      videoEl.addEventListener("webkitendfullscreen", onVideoFullscreenExit);
+      videoEl.addEventListener("enterpictureinpicture", onVideoFullscreenEnter);
+      videoEl.addEventListener("leavepictureinpicture", onVideoFullscreenExit);
+
+      cleanups.push(() => {
+        videoEl.removeEventListener("webkitbeginfullscreen", onVideoFullscreenEnter);
+        videoEl.removeEventListener("webkitendfullscreen", onVideoFullscreenExit);
+        videoEl.removeEventListener("enterpictureinpicture", onVideoFullscreenEnter);
+        videoEl.removeEventListener("leavepictureinpicture", onVideoFullscreenExit);
+      });
+    });
+
+    syncFullscreenState();
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onDocumentFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        onDocumentFullscreenChange,
+      );
+      document.removeEventListener("mozfullscreenchange", onDocumentFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", onDocumentFullscreenChange);
+      cleanups.forEach((cleanup) => cleanup());
+      fullscreenVideoRef.current = false;
+    };
+  }, [mounted, slides.length, previewActiveIndex]);
+
+  useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") handleClose();
       if (e.key === "ArrowLeft") go(-1);
@@ -167,6 +589,14 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleClose]);
+
+  useEffect(() => {
+    const onRequestClose = (event) =>
+      handleClose({ fromHistory: Boolean(event?.detail?.fromHistory) });
+    window.addEventListener("portfolio-viewer:request-close", onRequestClose);
+    return () =>
+      window.removeEventListener("portfolio-viewer:request-close", onRequestClose);
   }, [handleClose]);
 
   const measureStep = () => {
@@ -220,7 +650,10 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
       return;
     }
 
-    const targets = [infoRef.current].filter(Boolean);
+    const targets = [
+      infoRef.current,
+      isMax1200 ? descRef.current : null,
+    ].filter(Boolean);
     if (!targets.length) {
       setDisplayIndex(nextIndex);
       return;
@@ -310,7 +743,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
       const ideal = colW / ratio;
       const available = Math.max(180, colH - previewsH - gap); // keep some minimum
       const h = Math.min(ideal, available);
-
       col.style.setProperty("--media-h", `${h}px`);
       col.style.removeProperty("--media-w");
 
@@ -392,28 +824,16 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     goTo(activeIndexRef.current + dir);
   };
 
-  const onPreviewWheel = (e) => {
-    // Step projects by wheel/trackpad input; we animate the strip only.
-    e.preventDefault();
-
-    const now = performance.now();
-    if (now - wheelLockRef.current < 120) return;
-
-    const absX = Math.abs(e.deltaX);
-    const absY = Math.abs(e.deltaY);
-    const d = absX > absY ? e.deltaX : e.deltaY;
-    if (Math.abs(d) < 2) return;
-
-    wheelLockRef.current = now;
-    go(d > 0 ? 1 : -1);
-  };
-
   useEffect(() => {
     if (!mounted) return;
+    const rightCol = rightColRef.current;
+    if (!rightCol) return;
 
     const onWheel = (e) => {
-      // Allow scrolling anywhere on the overlay to change slides
-      if (e.target?.closest?.("input, textarea, select, button")) return;
+      // Scroll navigation is scoped to the right media column only.
+      if (fullscreenVideoRef.current || isVideoFullscreenActive(videoRefs)) return;
+      if (e.target?.closest?.('[data-wheel-ignore="true"]')) return;
+      if (e.target?.closest?.("input, textarea, select")) return;
       e.preventDefault();
 
       const now = performance.now();
@@ -428,15 +848,88 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
       go(d > 0 ? 1 : -1);
     };
 
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
+    rightCol.addEventListener("wheel", onWheel, { passive: false });
+    return () => rightCol.removeEventListener("wheel", onWheel);
   }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !isMax1200) return;
+
+    const scrollEl = overlayContentRef.current;
+    if (!scrollEl) return;
+
+    const onTouchStart = (e) => {
+      if (!e.touches?.length) return;
+      touchYRef.current = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e) => {
+      if (!e.touches?.length) return;
+
+      const target = e.target;
+      if (!(target instanceof Element)) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!scrollEl.contains(target)) {
+        e.preventDefault();
+        return;
+      }
+
+      const nextY = e.touches[0].clientY;
+      const deltaY = nextY - touchYRef.current;
+      touchYRef.current = nextY;
+
+      const canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 1;
+      if (!canScroll) {
+        e.preventDefault();
+        return;
+      }
+
+      const atTop = scrollEl.scrollTop <= 0;
+      const atBottom =
+        scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+
+      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchstart", onTouchStart, {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("touchmove", onTouchMove, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart, true);
+      document.removeEventListener("touchmove", onTouchMove, true);
+    };
+  }, [mounted, isMax1200]);
+
+  const rememberVideoAudioState = (videoEl) => {
+    if (!videoEl || typeof window === "undefined") return;
+
+    const nextVolume = clampVolume(videoEl.volume);
+    const nextMuted = Boolean(videoEl.muted);
+
+    savedVolumeRef.current = nextVolume;
+    savedMutedRef.current = nextMuted;
+
+    window.localStorage.setItem(VIDEO_VOLUME_STORAGE_KEY, String(nextVolume));
+    window.localStorage.setItem(VIDEO_MUTED_STORAGE_KEY, String(nextMuted));
+  };
 
   if (!mounted) return null;
 
   const active = slides[displayIndex] ?? slides[0];
   const trackItems = slides;
-  const activeDesc = active?.desc ?? defaultDesc;
+  const activeDesc = active?.description || active?.desc || defaultDesc;
+  const descriptionBlocks = getDescriptionBlocks(activeDesc);
   const isAtStart = previewActiveIndex <= 0;
   const isAtEnd = previewActiveIndex >= slides.length - 1;
 
@@ -446,15 +939,20 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
       <div className={styles.overlayMask} ref={overlayMaskRef}>
         <div
           className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""}`}
+          ref={overlayContentRef}
         >
           <div className={styles.info} ref={infoRef}>
           <p className={styles.date}>{active?.date}</p>
           <p className={styles.title}>{active?.title}</p>
+          {!isMax1200 && (
           <div className={styles.desc}>
-            <p>{activeDesc.ru}</p>
-            <p>{activeDesc.en}</p>
-            <p className={styles.descCh}>{activeDesc.cn}</p>
+            {descriptionBlocks.map((block) => (
+              <p key={block.key} className={block.className}>
+                {block.text}
+              </p>
+            ))}
           </div>
+          )}
         </div>
 
           <div className={`${styles.rightCol} ${isMax1200 ? styles.rightColMax1200 : ""}`} ref={rightColRef}>
@@ -470,25 +968,86 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
                   <div className={styles.mediaInner}>
                     {(() => {
                       const isActiveMedia = idx === previewActiveIndex;
-                      const shouldLoadVideo =
-                        Math.abs(idx - previewActiveIndex) <= 1;
-                      if (!c?.videoSrc || !shouldLoadVideo) return null;
-                      return (
-                      <video
-                        ref={(el) => {
-                          videoRefs.current[idx] = el;
-                        }}
-                        className={styles.mediaVideo}
-                        src={getAssetUrl(c.videoSrc)}
-                        aria-label={c.videoTitle || "Project video"}
-                        controls={isActiveMedia}
-                        muted
-                        loop
-                        playsInline
-                        preload={isActiveMedia ? "metadata" : "none"}
-                        poster={c?.imageSrc ? getAssetUrl(c.imageSrc) : undefined}
-                      />
-                      );
+                      const embedConfig = resolveEmbedConfig(c?.videoEmbedCode);
+                      const mediaSource = resolveMediaSource(c?.videoSrc);
+                      const shouldLoadVideo = Math.abs(idx - previewActiveIndex) <= 1;
+                      const shouldLoadEmbed = idx === previewActiveIndex;
+
+                      if (embedConfig && shouldLoadEmbed) {
+                        const previewImageSrc = c?.imageSrc
+                          ? getAssetUrl(c.imageSrc)
+                          : null;
+
+                        return (
+                          <>
+                            {previewImageSrc ? (
+                              <img
+                                className={`${styles.mediaImage} ${styles.mediaPoster} ${
+                                  activeEmbedReady ? styles.mediaPosterHidden : ""
+                                }`}
+                                src={previewImageSrc}
+                                alt=""
+                              />
+                            ) : (
+                              <div
+                                className={`${styles.mediaLoadingFallback} ${
+                                  activeEmbedReady ? styles.mediaLoadingFallbackHidden : ""
+                                }`}
+                                aria-hidden="true"
+                              >
+                                Загружаем видео...
+                              </div>
+                            )}
+
+                            <iframe
+                              className={`${styles.mediaIframe} ${
+                                activeEmbedReady ? styles.mediaIframeReady : ""
+                              }`}
+                              src={embedConfig.src}
+                              title={c?.title || "Project video"}
+                              allow={embedConfig.allow}
+                              allowFullScreen
+                              loading="eager"
+                              onLoad={() => setActiveEmbedReady(true)}
+                            />
+                          </>
+                        );
+                      }
+
+                      if (mediaSource && shouldLoadVideo) {
+                        return (
+                        <video
+                          ref={(el) => {
+                            videoRefs.current[idx] = el;
+                          }}
+                          onVolumeChange={(e) => {
+                            if (idx !== previewActiveIndex) return;
+                            rememberVideoAudioState(e.currentTarget);
+                          }}
+                          className={styles.mediaVideo}
+                          src={mediaSource}
+                          aria-label={c.videoTitle || "Project video"}
+                          controls={isActiveMedia}
+                          autoPlay={isActiveMedia}
+                          loop
+                          playsInline
+                          preload={isActiveMedia ? "metadata" : "none"}
+                          poster={c?.imageSrc ? getAssetUrl(c.imageSrc) : undefined}
+                        />
+                        );
+                      }
+
+                      if (c?.imageSrc) {
+                        return (
+                          <img
+                            className={styles.mediaImage}
+                            src={getAssetUrl(c.imageSrc)}
+                            alt=""
+                          />
+                        );
+                      }
+
+                      return null;
                     })()}
                   </div>
                 </div>
@@ -505,7 +1064,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               <div
                 className={styles.previewsTrack}
                 ref={previewTrackRef}
-                onWheel={onPreviewWheel}
               >
                 {trackItems.map((c, idx) => {
                   const isActive = idx === previewActiveIndex;
@@ -526,6 +1084,18 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
             </div>
           )}
 
+          {isMax1200 && (
+            <div className={`${styles.desc} ${styles.descMobile}`} ref={descRef}>
+              {descriptionBlocks.map((block) => (
+                <p key={block.key} className={block.className}>
+                  {block.text}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {isMax1200 && <div className={styles.mobileScrollSpacer} aria-hidden="true" />}
+
           <div className={styles.carouselActions}>
             <button
               type="button"
@@ -534,6 +1104,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               aria-label="Previous project"
               aria-hidden={isAtStart}
               disabled={isAtStart}
+              data-wheel-ignore="true"
             >
               <Image
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
@@ -556,6 +1127,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
               aria-label="Next project"
               aria-hidden={isAtEnd}
               disabled={isAtEnd}
+              data-wheel-ignore="true"
             >
             <span className={styles.btnText}>
               Следующая работа · Next project ·
@@ -592,4 +1164,3 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     document.body,
   );
 }
-

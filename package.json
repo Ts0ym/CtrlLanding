@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "images:webp": "node scripts/convert-png-to-webp.mjs"
   },
   "dependencies": {
     "gsap": "^3.14.2",

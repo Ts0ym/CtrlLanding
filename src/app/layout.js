@@ -5,17 +5,8 @@ import {
   Noto_Sans_SC,
 } from "next/font/google";
 import localFont from "next/font/local";
-import Image from "next/image";
 import "./globals.scss";
-import IntroAnimation from "./animations/IntroAnimation";
-import ScrollTransitions from "./animations/ScrollTransitions";
-import SmoothScroll from "./animations/SmoothScroll";
-import ScrollDownArrow from "../components/ScrollDownArrow";
-import MenuNav from "../components/MenuNav.client";
-import PortfolioAnimations from "./animations/PortfolioAnimations";
-import MobileMenuToggle from "../components/MobileMenuToggle.client";
-import styles from "./layout.module.scss";
-import { getAssetUrl } from "../lib/assetUrl";
+import AppShell from "../components/AppShell.client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -89,57 +80,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} ${notoJp.variable} ${notoSc.variable}`}
         data-header-state="hero"
       >
-        <IntroAnimation />
-        <SmoothScroll />
-        <ScrollTransitions />
-        <PortfolioAnimations />
-
-        <div className={styles.shell}>
-          <div className={styles.headerBg} aria-hidden="true" />
-          <div className={styles.footerBg} aria-hidden="true" />
-          <div
-            className={styles.headerLogo}
-            data-anim="header-logo"
-            aria-hidden="true"
-          >
-            <Image
-              className={styles.headerLogoImg}
-              src={getAssetUrl("/svg/ctrl..svg")}
-              alt=""
-              width={180}
-              height={32}
-              priority
-            />
-          </div>
-          <div className={styles.topLineLeft} data-anim="line" aria-hidden="true" />
-          <div className={styles.topLineRight} data-anim="line" aria-hidden="true" />
-          <div
-            className={styles.bottomLineLeft}
-            data-anim="line"
-            aria-hidden="true"
-          />
-          <div
-            className={styles.bottomLineRight}
-            data-anim="line"
-            aria-hidden="true"
-          />
-          <MobileMenuToggle />
-
-          <div data-nosnippet>
-            <MenuNav />
-          </div>
-
-          <ScrollDownArrow
-            className={styles.scrollHint}
-            iconClassName={styles.scrollHintIcon}
-          />
-
-          <div id="smooth-wrapper" className={styles.smoothWrapper}>
-            <div id="smooth-content" className={styles.smoothContent}>
-              <main className={styles.main}>{children}</main>
-            </div>
-          </div>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

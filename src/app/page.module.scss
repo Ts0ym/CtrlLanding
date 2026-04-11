@@ -9,6 +9,11 @@
     height: 100vh;
     height: 100svh;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 .sectionHeadline {

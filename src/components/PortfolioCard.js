@@ -1,5 +1,4 @@
 import styles from "./PortfolioCard.module.scss";
-import Image from "next/image";
 import { getAssetUrl } from "../lib/assetUrl";
 
 export default function PortfolioCard({ card, onClick }) {
@@ -12,12 +11,10 @@ export default function PortfolioCard({ card, onClick }) {
         aria-label="Open project"
       >
         <div className={styles.imageWrap}>
-          <Image
+          <img
             className={styles.image}
             src={getAssetUrl(card.imageSrc)}
             alt=""
-            fill
-            sizes="(max-width: 800px) 100vw, 33vw"
           />
         </div>
         <div className={styles.meta}>
@@ -28,4 +25,3 @@ export default function PortfolioCard({ card, onClick }) {
     </article>
   );
 }
-

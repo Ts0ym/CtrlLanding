@@ -26,12 +26,14 @@ export default function IntroAnimation() {
     if (smoother) smoother.paused(true);
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.__introDone = true;
       document.body.removeAttribute("data-intro-active");
       document.body.style.overflow = prevOverflowRef.current || "";
       document.documentElement.style.overflow = prevHtmlOverflowRef.current || "";
       window.removeEventListener("wheel", preventRef.current);
       window.removeEventListener("touchmove", preventRef.current);
       if (smoother) smoother.paused(false);
+      window.dispatchEvent(new Event("intro:done"));
       return;
     }
 
@@ -117,4 +119,3 @@ export default function IntroAnimation() {
 
   return null;
 }
-
