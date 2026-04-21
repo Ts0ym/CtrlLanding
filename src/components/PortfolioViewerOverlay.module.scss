@@ -142,15 +142,27 @@
 .info {
   position: absolute;
   top: var(--viewer-top);
+  bottom: calc(var(--pad-bottom) + 3.5rem);
   left: var(--pad);
   /* End right before the landing-aligned right column */
   right: calc(100% - var(--viewer-right-left) + var(--viewer-cols-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.75rem;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (max-width: 1200px) {
     order: 0;
     position: static;
     inset: auto;
     width: 100%;
+    overflow: visible;
+    padding-right: 0;
   }
 }
 
@@ -179,6 +191,20 @@
     font-size: 1.5rem;
     line-height: 1.5rem;
     letter-spacing: -0.045rem;
+  }
+}
+
+.titleCh {
+  display: inline;
+  line-height: 1.15;
+  letter-spacing: 0;
+  font-weight: 300;
+  font-size: 1.7rem; 
+
+  @media (max-width: 1200px) {
+    font-style: normal;
+    font-size: 1.3rem;
+    line-height: 1.3rem;
   }
 }
 

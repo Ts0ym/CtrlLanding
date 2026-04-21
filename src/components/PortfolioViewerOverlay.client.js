@@ -224,6 +224,24 @@ function hasHanScript(text) {
   return /[\p{Script=Han}]/u.test(text);
 }
 
+function renderTitleWithChineseSpans(title, className) {
+  const value = String(title ?? "");
+
+  return value.split(/([\p{Script=Han}]+)/gu).map((part, index) => {
+    if (!part) return null;
+
+    if (/[\p{Script=Han}]/u.test(part)) {
+      return (
+        <span key={`han-${index}`} className={className}>
+          {part}
+        </span>
+      );
+    }
+
+    return part;
+  });
+}
+
 function splitDescriptionText(text) {
   return String(text)
     .split(/\r?\n+/)
@@ -943,7 +961,9 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
         >
           <div className={styles.info} ref={infoRef}>
           <p className={styles.date}>{active?.date}</p>
-          <p className={styles.title}>{active?.title}</p>
+          <p className={styles.title}>
+            {renderTitleWithChineseSpans(active?.title, styles.titleCh)}
+          </p>
           {!isMax1200 && (
           <div className={styles.desc}>
             {descriptionBlocks.map((block) => (
