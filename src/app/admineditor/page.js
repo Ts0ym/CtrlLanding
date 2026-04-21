@@ -588,14 +588,19 @@ export default function AdminEditorPage() {
                 <label className={styles.label} htmlFor="title">
                   Название
                 </label>
-                <input
+                <textarea
                   id="title"
-                  className={styles.input}
+                  className={`${styles.input} ${styles.titleTextarea}`}
                   name="title"
                   value={form.title}
                   onChange={handleFieldChange}
+                  rows={3}
+                  placeholder={"Первая строка названия\nВторая строка названия"}
                   required
                 />
+                <div className={styles.fieldHint}>
+                  Используй Enter, чтобы задать перенос строки в заголовке проекта.
+                </div>
               </div>
 
               <div className={styles.field}>

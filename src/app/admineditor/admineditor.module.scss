@@ -164,6 +164,7 @@
   font-family: var(--font-cormorant), serif;
   font-size: 1.4rem;
   line-height: 1;
+  white-space: pre-line;
 }
 
 .form {
@@ -207,6 +208,11 @@
 
 .textarea {
   min-height: 14rem;
+}
+
+.titleTextarea {
+  min-height: 5.75rem;
+  white-space: pre-wrap;
 }
 
 .previewBlock,

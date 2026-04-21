@@ -73,7 +73,6 @@
 }
 
 .title {
-  width: 60%;
   margin: 0;
   align-self: start;
   font-family: var(--font-cormorant), serif;
@@ -85,15 +84,23 @@
   font-weight: 400;
 
   @media (max-width: 1200px) {
-    width: 55%;
     font-size: 1rem;
   }
 
   @media (max-width: 800px){
-    width: 77%;
     font-size: 1.6rem;
     font-style: italic;
     line-height:  1.9rem;
   }
+
+}
+
+.titleCh {
+  display: inline;
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    serif;
+  line-height: 1.4;
+  letter-spacing: 0;
+  font-weight: 300;
 
 }
