@@ -59,6 +59,15 @@
   padding-top: 0.5em;
 }
 
+.contactNumber {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  text-transform: capitalize;
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;
+}
+
 .contactTextCn {
   font-weight: 300;
 }
@@ -74,4 +83,3 @@
   border-top: var(--rule-thickness) solid var(--line);
   background: transparent;
 }
-

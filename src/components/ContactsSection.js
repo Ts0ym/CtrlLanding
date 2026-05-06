@@ -19,7 +19,11 @@ export default function ContactsSection() {
           <div className={styles.contactText}>
             <p>Владивосток</p>
             <p>1-я Морская, 10</p>
-            <p>+7 (999) 123-12-12</p>
+            <p>
+              <a className={styles.contactNumber} href="tel:+79146789667">
+                +7 (914) 678 9667
+              </a>
+            </p>
             <p>email@email.com</p>
           </div>
           <div className={styles.contactRule} aria-hidden="true" />
@@ -28,8 +32,12 @@ export default function ContactsSection() {
         <div className={styles.contactGroup}>
           <div className={styles.contactText}>
             <p>Москва</p>
-            <p>1-я Морская, 10</p>
-            <p>+7 (999) 123-12-12</p>
+            <p>Волоколамское шоссе, 24</p>
+            <p>
+              <a className={styles.contactNumber} href="tel:+79146789667">
+                +7 (914) 678 9667
+              </a>
+            </p>
             <p>email@email.com</p>
           </div>
           <div className={styles.contactRule} aria-hidden="true" />
@@ -37,8 +45,10 @@ export default function ContactsSection() {
 
         <div className={`${styles.contactText} ${styles.contactTextCn}`}>
           <p>上海</p>
-          <p>1-я Морская, 10</p>
-          <p>+7 (999) 123-12-12</p>
+          <p className={styles.contactNumber}>瑞金二路225弄</p>
+          <p>
+           Weixin: anishchenko_ivan
+          </p>
           <p>email@email.com</p>
         </div>
       </div>
