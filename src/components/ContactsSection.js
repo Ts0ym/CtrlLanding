@@ -24,7 +24,7 @@ export default function ContactsSection() {
                 +7 (914) 678 9667
               </a>
             </p>
-            <p>email@email.com</p>
+            <p>ctrl.moscow@gmail.com</p>
           </div>
           <div className={styles.contactRule} aria-hidden="true" />
         </div>
@@ -38,7 +38,7 @@ export default function ContactsSection() {
                 +7 (914) 678 9667
               </a>
             </p>
-            <p>email@email.com</p>
+            <p>ctrl.moscow@gmail.com</p>
           </div>
           <div className={styles.contactRule} aria-hidden="true" />
         </div>
@@ -49,7 +49,7 @@ export default function ContactsSection() {
           <p>
            Weixin: anishchenko_ivan
           </p>
-          <p>email@email.com</p>
+          <p>ctrl.moscow@gmail.com</p>
         </div>
       </div>
     </section>
