@@ -54,6 +54,20 @@
   color: #fff;
 }
 
+.logoutBtn:disabled,
+.secondaryBtn:disabled,
+.dangerBtn:disabled,
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.disabledControl {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .dangerBtn {
   border-color: rgba(158, 34, 34, 0.25);
   color: #8c1e1e;

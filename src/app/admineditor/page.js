@@ -66,6 +66,11 @@ function reorderProjectsList(projects, draggedId, targetId) {
   }));
 }
 
+function createBackupFilename() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `ctrl-projects-backup-${timestamp}.json`;
+}
+
 export default function AdminEditorPage() {
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
@@ -77,6 +82,8 @@ export default function AdminEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPreview, setIsUploadingPreview] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
+  const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
   const [draggedProjectId, setDraggedProjectId] = useState(null);
   const [dropTargetProjectId, setDropTargetProjectId] = useState(null);
   const [error, setError] = useState("");
@@ -293,6 +300,69 @@ export default function AdminEditorPage() {
     }));
     setNotice("");
     setError("");
+  };
+
+  const handleDownloadBackup = async () => {
+    setIsDownloadingBackup(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const backup = await request("/projects/backup");
+      const backupText = JSON.stringify(backup, null, 2);
+      const blob = new Blob([backupText], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = createBackupFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setNotice("JSON backup saved.");
+    } catch (backupError) {
+      setError(backupError.message || "Failed to download JSON backup.");
+    } finally {
+      setIsDownloadingBackup(false);
+    }
+  };
+
+  const handleImportBackup = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setIsImportingBackup(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const backupText = await file.text();
+      const backup = JSON.parse(backupText);
+      const result = await request("/projects/backup/import", {
+        method: "POST",
+        body: JSON.stringify(backup),
+      });
+
+      setProjects(result.projects);
+
+      const firstImportedProject = result.importedProjects?.[0];
+      if (firstImportedProject) {
+        setSelectedId(firstImportedProject.id);
+        setForm(projectToForm(firstImportedProject));
+      }
+
+      setNotice(`Imported ${result.imported} projects from JSON backup.`);
+    } catch (importError) {
+      setError(importError.message || "Failed to import JSON backup.");
+    } finally {
+      event.target.value = "";
+      setIsImportingBackup(false);
+    }
   };
 
   const handleDragStart = (projectId) => {
@@ -522,6 +592,28 @@ export default function AdminEditorPage() {
               <button className={styles.primaryBtn} type="button" onClick={startCreate}>
                 Новый проект
               </button>
+              <button
+                className={styles.secondaryBtn}
+                type="button"
+                onClick={handleDownloadBackup}
+                disabled={isDownloadingBackup}
+              >
+                {isDownloadingBackup ? "Preparing..." : "JSON backup"}
+              </button>
+              <label
+                className={`${styles.secondaryBtn} ${styles.fileTrigger} ${
+                  isImportingBackup ? styles.disabledControl : ""
+                }`}
+              >
+                <input
+                  className={styles.fileInput}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleImportBackup}
+                  disabled={isImportingBackup}
+                />
+                {isImportingBackup ? "Importing..." : "Import JSON"}
+              </label>
             </div>
 
             <div className={styles.reorderHint}>
