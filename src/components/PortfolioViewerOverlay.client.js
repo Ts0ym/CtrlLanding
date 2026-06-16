@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import gsap from "gsap";
 import styles from "./PortfolioViewerOverlay.module.scss";
-import PortfolioPreviewCard from "./PortfolioPreviewCard";
 import { getAssetUrl } from "../lib/assetUrl";
+import {
+  getLocalizedProjectDescription,
+  getLocalizedProjectField,
+} from "../lib/portfolioProjects";
 
 function clampIndex(i, len) {
   if (len <= 0) return 0;
@@ -312,7 +315,52 @@ function setPortfolioViewerStage(stage) {
   });
 }
 
-export default function PortfolioViewerOverlay({ cards, initialIndex, onClose }) {
+function StaticProjectMedia({ item, title, loading = "lazy" }) {
+  const mediaType = item?.mediaType || (item?.videoEmbedCode ? "video" : "image");
+  const embedConfig = mediaType === "video" ? resolveEmbedConfig(item?.videoEmbedCode) : null;
+
+  if (embedConfig) {
+    return (
+      <iframe
+        className={`${styles.mediaIframe} ${styles.mediaIframeReady}`}
+        src={embedConfig.src}
+        title={title || "Project media"}
+        allow={embedConfig.allow}
+        allowFullScreen
+        loading={loading}
+      />
+    );
+  }
+
+  if (item?.imageSrc) {
+    return (
+      <img
+        className={styles.mediaImage}
+        src={getAssetUrl(item.imageSrc)}
+        alt=""
+        loading={loading}
+      />
+    );
+  }
+
+  return null;
+}
+
+function ProjectBlockDivider() {
+  return (
+    <div className={styles.blockDivider} aria-hidden="true">
+      <span className={`${styles.blockDividerLine} ${styles.blockDividerLineLeft}`} />
+      <span className={`${styles.blockDividerLine} ${styles.blockDividerLineRight}`} />
+    </div>
+  );
+}
+
+export default function PortfolioViewerOverlay({
+  cards,
+  initialIndex,
+  language = "ru",
+  onClose,
+}) {
   const slides = useMemo(() => cards ?? [], [cards]);
   const CAROUSEL_DURATION = 1;
   const WIPE_DURATION = 0.5;
@@ -344,12 +392,12 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const closingRef = useRef(false);
   const stepRef = useRef(0);
   const mediaStepRef = useRef(0);
-  const wheelLockRef = useRef(0);
   const animatingRef = useRef(false);
   const activeIndexRef = useRef(0);
   const infoRef = useRef(null);
   const descRef = useRef(null);
   const mediaRef = useRef(null);
+  const endVideoBlockRef = useRef(null);
   const videoRefs = useRef([]);
   const fullscreenVideoRef = useRef(false);
   const didInitRef = useRef(false);
@@ -357,6 +405,7 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const touchYRef = useRef(0);
   const savedVolumeRef = useRef(DEFAULT_VIDEO_VOLUME);
   const savedMutedRef = useRef(false);
+  const [isEndVideoPinned, setIsEndVideoPinned] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -542,9 +591,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
     const syncFullscreenState = () => {
       fullscreenVideoRef.current = isVideoFullscreenActive(videoRefs);
-      if (fullscreenVideoRef.current) {
-        wheelLockRef.current = performance.now();
-      }
     };
 
     const onDocumentFullscreenChange = () => {
@@ -563,12 +609,10 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
       const onVideoFullscreenEnter = () => {
         fullscreenVideoRef.current = true;
-        wheelLockRef.current = performance.now();
       };
 
       const onVideoFullscreenExit = () => {
         fullscreenVideoRef.current = false;
-        wheelLockRef.current = performance.now();
       };
 
       videoEl.addEventListener("webkitbeginfullscreen", onVideoFullscreenEnter);
@@ -749,17 +793,24 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     if (!col || !media) return;
 
     const compute = () => {
-      // Available height inside the right column container (it has top+bottom)
-      const colH = col.getBoundingClientRect().height;
       const colW = col.getBoundingClientRect().width;
       const styles = window.getComputedStyle(col);
+      const content = overlayContentRef.current;
+      const contentStyles = content ? window.getComputedStyle(content) : null;
+      const contentPaddingTop = parseFloat(contentStyles?.paddingTop || "0") || 0;
+      const contentPaddingBottom =
+        parseFloat(contentStyles?.paddingBottom || "0") || 0;
       const gap = parseFloat(styles.rowGap || styles.gap || "0") || 0;
       const previewsH = previews?.getBoundingClientRect().height ?? 0;
+      const viewportH = window.visualViewport?.height ?? window.innerHeight;
 
       // Keep native media aspect ratio in JS; mobile 16:9 is handled in CSS.
       const ratio = mediaAspectRatio > 0 ? mediaAspectRatio : 16 / 9;
       const ideal = colW / ratio;
-      const available = Math.max(180, colH - previewsH - gap); // keep some minimum
+      const available = Math.max(
+        260,
+        viewportH - contentPaddingTop - contentPaddingBottom - previewsH - gap,
+      );
       const h = Math.min(ideal, available);
       col.style.setProperty("--media-h", `${h}px`);
       col.style.removeProperty("--media-w");
@@ -778,10 +829,17 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
 
     const ro = new ResizeObserver(compute);
     ro.observe(col);
+    if (overlayContentRef.current) ro.observe(overlayContentRef.current);
     if (previews) ro.observe(previews);
+    window.addEventListener("resize", compute);
+    window.visualViewport?.addEventListener("resize", compute);
 
     compute();
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+      window.visualViewport?.removeEventListener("resize", compute);
+    };
   }, [mounted, isMax1200, mediaAspectRatio]);
 
   const goTo = (next) => {
@@ -841,34 +899,6 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
   const go = (dir) => {
     goTo(activeIndexRef.current + dir);
   };
-
-  useEffect(() => {
-    if (!mounted) return;
-    const rightCol = rightColRef.current;
-    if (!rightCol) return;
-
-    const onWheel = (e) => {
-      // Scroll navigation is scoped to the right media column only.
-      if (fullscreenVideoRef.current || isVideoFullscreenActive(videoRefs)) return;
-      if (e.target?.closest?.('[data-wheel-ignore="true"]')) return;
-      if (e.target?.closest?.("input, textarea, select")) return;
-      e.preventDefault();
-
-      const now = performance.now();
-      if (now - wheelLockRef.current < 120) return;
-
-      const absX = Math.abs(e.deltaX);
-      const absY = Math.abs(e.deltaY);
-      const d = absX > absY ? e.deltaX : e.deltaY;
-      if (Math.abs(d) < 2) return;
-
-      wheelLockRef.current = now;
-      go(d > 0 ? 1 : -1);
-    };
-
-    rightCol.addEventListener("wheel", onWheel, { passive: false });
-    return () => rightCol.removeEventListener("wheel", onWheel);
-  }, [mounted]);
 
   useEffect(() => {
     if (!mounted || !isMax1200) return;
@@ -942,190 +972,78 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
     window.localStorage.setItem(VIDEO_MUTED_STORAGE_KEY, String(nextMuted));
   };
 
+  const active = slides[displayIndex] ?? slides[0];
+  const hasEndVideo = Boolean(active?.endVideoEmbedCode);
+
+  useEffect(() => {
+    if (!mounted || !hasEndVideo || isMax1200) {
+      setIsEndVideoPinned(false);
+      return;
+    }
+
+    const scrollEl = overlayContentRef.current;
+    const endVideoEl = endVideoBlockRef.current;
+    if (!scrollEl || !endVideoEl) return;
+
+    let frame = 0;
+
+    const updatePinnedState = () => {
+      frame = 0;
+      const scrollRect = scrollEl.getBoundingClientRect();
+      const videoRect = endVideoEl.getBoundingClientRect();
+      const nextPinned =
+        videoRect.top <= scrollRect.top + 1 && videoRect.bottom > scrollRect.top + 1;
+
+      setIsEndVideoPinned(nextPinned);
+    };
+
+    const requestUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updatePinnedState);
+    };
+
+    requestUpdate();
+    scrollEl.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+    window.visualViewport?.addEventListener("resize", requestUpdate);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      scrollEl.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+      window.visualViewport?.removeEventListener("resize", requestUpdate);
+      setIsEndVideoPinned(false);
+    };
+  }, [mounted, hasEndVideo, isMax1200, displayIndex]);
+
   if (!mounted) return null;
 
-  const active = slides[displayIndex] ?? slides[0];
-  const trackItems = slides;
-  const activeDesc = active?.description || active?.desc || defaultDesc;
+  const activeDate = getLocalizedProjectField(active, "date", language);
+  const activeTitle = getLocalizedProjectField(active, "title", language);
+  const activeDesc =
+    getLocalizedProjectDescription(active, language) || active?.desc || defaultDesc;
   const descriptionBlocks = getDescriptionBlocks(activeDesc);
-  const isAtStart = previewActiveIndex <= 0;
-  const isAtEnd = previewActiveIndex >= slides.length - 1;
+  const additionalBlocks = Array.isArray(active?.blocks)
+    ? [...active.blocks].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    : [];
 
   return createPortal(
-    <div className={styles.overlay} ref={overlayRef} role="dialog" aria-modal="true">
+    <div
+      className={`${styles.overlay} ${isEndVideoPinned ? styles.overlayEndVideoPinned : ""}`}
+      ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+    >
       <div className={styles.wipe} ref={wipeRef} aria-hidden="true" />
       <div className={styles.overlayMask} ref={overlayMaskRef}>
         <div
-          className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""}`}
+          className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""} ${
+            hasEndVideo ? styles.overlayContentHasEndVideo : ""
+          }`}
           ref={overlayContentRef}
         >
-          <div className={styles.info} ref={infoRef}>
-          <p className={styles.date}>{active?.date}</p>
-          <p className={styles.title}>
-            {renderTitleWithChineseSpans(active?.title, styles.titleCh)}
-          </p>
-          {!isMax1200 && (
-          <div className={styles.desc}>
-            {descriptionBlocks.map((block) => (
-              <p key={block.key} className={block.className}>
-                {block.text}
-              </p>
-            ))}
-          </div>
-          )}
-        </div>
-
-          <div className={`${styles.rightCol} ${isMax1200 ? styles.rightColMax1200 : ""}`} ref={rightColRef}>
-          <div
-            className={styles.media}
-            aria-label="Video carousel"
-            ref={mediaRef}
-            style={{ "--media-aspect-ratio": mediaAspectRatio }}
-          >
-            <div className={styles.mediaTrack} ref={mediaTrackRef}>
-              {slides.map((c, idx) => (
-                <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
-                  <div className={styles.mediaInner}>
-                    {(() => {
-                      const isActiveMedia = idx === previewActiveIndex;
-                      const embedConfig = resolveEmbedConfig(c?.videoEmbedCode);
-                      const mediaSource = resolveMediaSource(c?.videoSrc);
-                      const shouldLoadVideo = Math.abs(idx - previewActiveIndex) <= 1;
-                      const shouldLoadEmbed = idx === previewActiveIndex;
-
-                      if (embedConfig && shouldLoadEmbed) {
-                        const previewImageSrc = c?.imageSrc
-                          ? getAssetUrl(c.imageSrc)
-                          : null;
-
-                        return (
-                          <>
-                            {previewImageSrc ? (
-                              <img
-                                className={`${styles.mediaImage} ${styles.mediaPoster} ${
-                                  activeEmbedReady ? styles.mediaPosterHidden : ""
-                                }`}
-                                src={previewImageSrc}
-                                alt=""
-                              />
-                            ) : (
-                              <div
-                                className={`${styles.mediaLoadingFallback} ${
-                                  activeEmbedReady ? styles.mediaLoadingFallbackHidden : ""
-                                }`}
-                                aria-hidden="true"
-                              >
-                                Загружаем видео...
-                              </div>
-                            )}
-
-                            <iframe
-                              className={`${styles.mediaIframe} ${
-                                activeEmbedReady ? styles.mediaIframeReady : ""
-                              }`}
-                              src={embedConfig.src}
-                              title={c?.title || "Project video"}
-                              allow={embedConfig.allow}
-                              allowFullScreen
-                              loading="eager"
-                              onLoad={() => setActiveEmbedReady(true)}
-                            />
-                          </>
-                        );
-                      }
-
-                      if (mediaSource && shouldLoadVideo) {
-                        return (
-                        <video
-                          ref={(el) => {
-                            videoRefs.current[idx] = el;
-                          }}
-                          onVolumeChange={(e) => {
-                            if (idx !== previewActiveIndex) return;
-                            rememberVideoAudioState(e.currentTarget);
-                          }}
-                          className={styles.mediaVideo}
-                          src={mediaSource}
-                          aria-label={c.videoTitle || "Project video"}
-                          controls={isActiveMedia}
-                          autoPlay={isActiveMedia}
-                          loop
-                          playsInline
-                          preload={isActiveMedia ? "metadata" : "none"}
-                          poster={c?.imageSrc ? getAssetUrl(c.imageSrc) : undefined}
-                        />
-                        );
-                      }
-
-                      if (c?.imageSrc) {
-                        return (
-                          <img
-                            className={styles.mediaImage}
-                            src={getAssetUrl(c.imageSrc)}
-                            alt=""
-                          />
-                        );
-                      }
-
-                      return null;
-                    })()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {!isMax1200 && (
-            <div
-              className={styles.previewsViewport}
-              ref={previewViewportRef}
-              aria-label="Project previews"
-            >
-              <div
-                className={styles.previewsTrack}
-                ref={previewTrackRef}
-              >
-                {trackItems.map((c, idx) => {
-                  const isActive = idx === previewActiveIndex;
-                  const isDim = !isActive;
-
-                  return (
-                    <PortfolioPreviewCard
-                      key={`${c?.id ?? "item"}-${idx}`}
-                      card={c}
-                      dim={isDim}
-                      onClick={() => goTo(idx)}
-                      ariaLabel={isActive ? "Current project" : "Open project"}
-                      data-preview-item
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {isMax1200 && (
-            <div className={`${styles.desc} ${styles.descMobile}`} ref={descRef}>
-              {descriptionBlocks.map((block) => (
-                <p key={block.key} className={block.className}>
-                  {block.text}
-                </p>
-              ))}
-            </div>
-          )}
-
-          {isMax1200 && <div className={styles.mobileScrollSpacer} aria-hidden="true" />}
-
-          <div className={styles.carouselActions}>
-            <button
-              type="button"
-              className={`${styles.prevBtn} ${isAtStart ? styles.navBtnHidden : ""}`}
-              onClick={() => go(-1)}
-              aria-label="Previous project"
-              aria-hidden={isAtStart}
-              disabled={isAtStart}
-              data-wheel-ignore="true"
-            >
+          <section className={`${styles.projectBlock} ${styles.projectBlockMain}`}>
+            <button type="button" className={styles.backBtn} onClick={handleClose}>
               <Image
                 className={`${styles.btnIcon} ${styles.btnIconLeft}`}
                 src={getAssetUrl("/svg/arrow.svg")}
@@ -1134,50 +1052,211 @@ export default function PortfolioViewerOverlay({ cards, initialIndex, onClose })
                 width={15}
                 height={16}
               />
-            <span className={styles.btnText}>
-              Предыдущая работа · Previous project ·
-              <span className={styles.btnTextCn}>上一个项目</span>
-            </span>
+              <span className={styles.btnText}>
+                Назад · Back · <span className={styles.btnTextCn}>返回</span>
+              </span>
             </button>
 
-            <button
-              type="button"
-              className={`${styles.nextBtn} ${isAtEnd ? styles.navBtnHidden : ""}`}
-              onClick={() => go(1)}
-              aria-label="Next project"
-              aria-hidden={isAtEnd}
-              disabled={isAtEnd}
-              data-wheel-ignore="true"
+            <div className={styles.info} ref={infoRef}>
+              <p className={styles.date}>{activeDate}</p>
+              <p className={styles.title}>
+                {renderTitleWithChineseSpans(activeTitle, styles.titleCh)}
+              </p>
+              {!isMax1200 && (
+                <div className={styles.desc}>
+                  {descriptionBlocks.map((block) => (
+                    <p key={block.key} className={block.className}>
+                      {block.text}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`${styles.rightCol} ${isMax1200 ? styles.rightColMax1200 : ""}`}
+              ref={rightColRef}
             >
-            <span className={styles.btnText}>
-              Следующая работа · Next project ·
-              <span className={styles.btnTextCn}>下一个项目</span>
-            </span>
-              <Image
-                className={`${styles.btnIcon} ${styles.btnIconRight}`}
-                src={getAssetUrl("/svg/arrow.svg")}
-                alt=""
-                aria-hidden="true"
-                width={15}
-                height={16}
-              />
-            </button>
-          </div>
-        </div>
+              <div
+                className={styles.media}
+                aria-label="Video carousel"
+                ref={mediaRef}
+                style={{ "--media-aspect-ratio": mediaAspectRatio }}
+              >
+                <div className={styles.mediaTrack} ref={mediaTrackRef}>
+                  {slides.map((c, idx) => (
+                    <div className={styles.mediaSlide} key={`${c?.id ?? "media"}-${idx}`}>
+                      <div className={styles.mediaInner}>
+                        {(() => {
+                          const isActiveMedia = idx === previewActiveIndex;
+                          const mediaTitle = getLocalizedProjectField(c, "title", language);
+                          const embedConfig = resolveEmbedConfig(c?.videoEmbedCode);
+                          const mediaSource = resolveMediaSource(c?.videoSrc);
+                          const shouldLoadVideo = Math.abs(idx - previewActiveIndex) <= 1;
+                          const shouldLoadEmbed = idx === previewActiveIndex;
 
-        <button type="button" className={styles.backBtn} onClick={handleClose}>
-          <Image
-            className={`${styles.btnIcon} ${styles.btnIconLeft}`}
-            src={getAssetUrl("/svg/arrow.svg")}
-            alt=""
-            aria-hidden="true"
-            width={15}
-            height={16}
-          />
-          <span className={styles.btnText}>
-            Назад · Back · <span className={styles.btnTextCn}>返回</span>
-          </span>
-          </button>
+                          if (embedConfig && shouldLoadEmbed) {
+                            const previewImageSrc = c?.imageSrc
+                              ? getAssetUrl(c.imageSrc)
+                              : null;
+
+                            return (
+                              <>
+                                {previewImageSrc ? (
+                                  <img
+                                    className={`${styles.mediaImage} ${styles.mediaPoster} ${
+                                      activeEmbedReady ? styles.mediaPosterHidden : ""
+                                    }`}
+                                    src={previewImageSrc}
+                                    alt=""
+                                  />
+                                ) : (
+                                  <div
+                                    className={`${styles.mediaLoadingFallback} ${
+                                      activeEmbedReady ? styles.mediaLoadingFallbackHidden : ""
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    Загружаем видео...
+                                  </div>
+                                )}
+
+                                <iframe
+                                  className={`${styles.mediaIframe} ${
+                                    activeEmbedReady ? styles.mediaIframeReady : ""
+                                  }`}
+                                  src={embedConfig.src}
+                                  title={mediaTitle || "Project video"}
+                                  allow={embedConfig.allow}
+                                  allowFullScreen
+                                  loading="eager"
+                                  onLoad={() => setActiveEmbedReady(true)}
+                                />
+                              </>
+                            );
+                          }
+
+                          if (mediaSource && shouldLoadVideo) {
+                            return (
+                              <video
+                                ref={(el) => {
+                                  videoRefs.current[idx] = el;
+                                }}
+                                onVolumeChange={(e) => {
+                                  if (idx !== previewActiveIndex) return;
+                                  rememberVideoAudioState(e.currentTarget);
+                                }}
+                                className={styles.mediaVideo}
+                                src={mediaSource}
+                                aria-label={mediaTitle || c.videoTitle || "Project video"}
+                                controls={isActiveMedia}
+                                autoPlay={isActiveMedia}
+                                loop
+                                playsInline
+                                preload={isActiveMedia ? "metadata" : "none"}
+                                poster={c?.imageSrc ? getAssetUrl(c.imageSrc) : undefined}
+                              />
+                            );
+                          }
+
+                          if (c?.imageSrc) {
+                            return (
+                              <img
+                                className={styles.mediaImage}
+                                src={getAssetUrl(c.imageSrc)}
+                                alt=""
+                              />
+                            );
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {isMax1200 && (
+                <div className={`${styles.desc} ${styles.descMobile}`} ref={descRef}>
+                  {descriptionBlocks.map((block) => (
+                    <p key={block.key} className={block.className}>
+                      {block.text}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {active?.showDividerAfter ? <ProjectBlockDivider /> : null}
+
+          {additionalBlocks.map((block, index) => {
+            const blockDescription = getDescriptionBlocks(
+              getLocalizedProjectDescription(block, language),
+            );
+            const mediaKey = block.id ?? `${block.sortOrder ?? index}-${index}`;
+            const isTextBlock = block.mediaType === "text";
+
+            return (
+              <Fragment key={`block-${mediaKey}`}>
+                <section
+                  className={`${styles.projectBlock} ${
+                    isTextBlock ? styles.projectBlockText : ""
+                  }`}
+                >
+                  <div className={`${styles.info} ${styles.blockInfo}`}>
+                    <div className={`${styles.desc} ${styles.blockDesc}`}>
+                      {blockDescription.map((descBlock) => (
+                        <p key={descBlock.key} className={descBlock.className}>
+                          {descBlock.text}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div
+                    className={`${styles.rightCol} ${styles.blockMediaCol} ${
+                      isTextBlock ? styles.blockTextMediaCol : ""
+                    }`}
+                  >
+                    {isTextBlock ? (
+                      <div className={styles.blockTextMediaPlaceholder} aria-hidden="true" />
+                    ) : (
+                      <div className={`${styles.media} ${styles.blockMedia}`}>
+                        <div className={styles.mediaInner}>
+                          <StaticProjectMedia item={block} title={activeTitle} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {block.showDividerAfter ? <ProjectBlockDivider /> : null}
+              </Fragment>
+            );
+          })}
+
+          {hasEndVideo ? (
+            <section className={styles.endVideoBlock} ref={endVideoBlockRef}>
+              <div className={`${styles.media} ${styles.endVideoMedia}`}>
+                <div className={styles.mediaInner}>
+                  <StaticProjectMedia
+                    item={{
+                      mediaType: "video",
+                      videoEmbedCode: active.endVideoEmbedCode,
+                    }}
+                    title={activeTitle}
+                    loading="eager"
+                  />
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {isMax1200 && !hasEndVideo && (
+            <div className={styles.mobileScrollSpacer} aria-hidden="true" />
+          )}
         </div>
       </div>
     </div>,

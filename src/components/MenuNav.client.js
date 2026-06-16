@@ -4,10 +4,63 @@ import { useCallback, useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import DesktopLanguageSwitcher from "./DesktopLanguageSwitcher.client";
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  getLanguageMeta,
+  isSupportedLanguage,
+} from "../lib/languages";
 import styles from "../app/layout.module.scss";
+
+const MENU_ITEMS = [
+  {
+    href: "#home",
+    label: {
+      ru: "Главная",
+      en: "Home",
+      cn: "首页",
+    },
+  },
+  {
+    href: "#about",
+    label: {
+      ru: "О нас",
+      en: "About Us",
+      cn: "关于我们",
+    },
+  },
+  {
+    href: "#work",
+    label: {
+      ru: "Работы",
+      en: "Portfolio",
+      cn: "作品集",
+    },
+  },
+  {
+    href: "#contact",
+    label: {
+      ru: "Контакты",
+      en: "Contact Us",
+      cn: "联系我们",
+    },
+  },
+];
 
 export default function MenuNav() {
   const [activeHref, setActiveHref] = useState("#home");
+  const [activeLanguage, setActiveLanguage] = useState(DEFAULT_LANGUAGE);
+
+  useEffect(() => {
+    const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const nextLanguage = isSupportedLanguage(storedLanguage)
+      ? storedLanguage
+      : DEFAULT_LANGUAGE;
+
+    setActiveLanguage(nextLanguage);
+    document.documentElement.lang = getLanguageMeta(nextLanguage).htmlLang;
+  }, []);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -163,104 +216,48 @@ export default function MenuNav() {
     requestAnimationFrame(() => requestAnimationFrame(doScroll));
   }, []);
 
+  const handleLanguageChange = useCallback((language) => {
+    if (!isSupportedLanguage(language)) return;
+
+    setActiveLanguage(language);
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    document.documentElement.lang = getLanguageMeta(language).htmlLang;
+    window.dispatchEvent(
+      new CustomEvent("language:change", {
+        detail: { language },
+      })
+    );
+  }, []);
+
+  const activeLanguageMeta = getLanguageMeta(activeLanguage);
+
   return (
     <nav className={styles.menu} aria-label="Menu" onClick={onClick}>
-      <p className={styles.menuTitle} data-anim="menu-title">
-        <span>Меню</span>
-        <span className={styles.sep} aria-hidden="true">
-          ·
-        </span>
-        <span>Menu</span>
-        <span className={styles.sep} aria-hidden="true">
-          ·
-        </span>
-        <span className={styles.menuTitleCn}>菜单</span>
-      </p>
+      <DesktopLanguageSwitcher
+        activeLanguage={activeLanguage}
+        onLanguageChange={handleLanguageChange}
+      />
       <ul className={styles.menuList} data-anim="menu-list">
-        <li>
-          <a
-            className={`${styles.menuLink} ${
-              activeHref === "#home" ? styles.menuLinkActive : ""
-            }`}
-            href="#home"
-          >
-            <span className={styles.menuLinkLabel}>
-              <span>Главная</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
+        {MENU_ITEMS.map((item) => (
+          <li key={item.href}>
+            <a
+              className={`${styles.menuLink} ${
+                activeHref === item.href ? styles.menuLinkActive : ""
+              }`}
+              href={item.href}
+            >
+              <span
+                className={`${styles.menuLinkLabel} ${
+                  activeLanguage === "cn" ? styles.menuCn : ""
+                }`}
+                lang={activeLanguageMeta.htmlLang}
+              >
+                {item.label[activeLanguage]}
               </span>
-              <span>Home</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span className={styles.menuCn}>首页</span>
-            </span>
-            <span className={styles.menuLinkUnderline} aria-hidden="true" />
-          </a>
-        </li>
-        <li>
-          <a
-            className={`${styles.menuLink} ${
-              activeHref === "#about" ? styles.menuLinkActive : ""
-            }`}
-            href="#about"
-          >
-            <span className={styles.menuLinkLabel}>
-              <span>О нас</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span>About Us</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span className={styles.menuCn}>关于我们</span>
-            </span>
-            <span className={styles.menuLinkUnderline} aria-hidden="true" />
-          </a>
-        </li>
-        <li>
-          <a
-            className={`${styles.menuLink} ${
-              activeHref === "#work" ? styles.menuLinkActive : ""
-            }`}
-            href="#work"
-          >
-            <span className={styles.menuLinkLabel}>
-              <span>Работы</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span>Portfolio</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span className={styles.menuCn}>作品集</span>
-            </span>
-            <span className={styles.menuLinkUnderline} aria-hidden="true" />
-          </a>
-        </li>
-        <li>
-          <a
-            className={`${styles.menuLink} ${
-              activeHref === "#contact" ? styles.menuLinkActive : ""
-            }`}
-            href="#contact"
-          >
-            <span className={styles.menuLinkLabel}>
-              <span>Контакты</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span>Contact Us</span>
-              <span className={styles.sep} aria-hidden="true">
-                ·
-              </span>
-              <span className={styles.menuCn}>联系我们</span>
-            </span>
-            <span className={styles.menuLinkUnderline} aria-hidden="true" />
-          </a>
-        </li>
+              <span className={styles.menuLinkUnderline} aria-hidden="true" />
+            </a>
+          </li>
+        ))}
       </ul>
     </nav>
   );

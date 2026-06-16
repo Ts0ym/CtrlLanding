@@ -143,10 +143,11 @@
   pointer-events: none;
 }
 
-@media (max-width: 1200px) {
-  :global(body[data-portfolio-viewer-stage="opened"]) .footerBg {
-    z-index: 19;
-  }
+:global(body[data-portfolio-viewer="open"]) .footerBg,
+:global(body[data-portfolio-viewer="open"]) .bottomLineLeft,
+:global(body[data-portfolio-viewer="open"]) .bottomLineRight {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .headerLogoImg {
@@ -280,19 +281,78 @@
   }
 }
 
-.menuTitle {
+.desktopLanguageSwitcher {
   margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-cormorant), var(--font-noto-sc), var(--font-noto-jp),
+    serif;
   font-style: italic;
   font-weight: 400;
   font-size: clamp(1.75rem, 1.6vw, 2.75rem);
   line-height: 1;
-  letter-spacing: -0.045rem;
+  letter-spacing: 0;
 }
 
-.menuTitleCn {
-  font-size: 0.8333em;
+.languageItem {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.languageButton {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 1.35em;
+  padding: 0 0 0.12em;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+
+.languageButton::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1px solid currentColor;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.25s ease;
+}
+
+.languageButton:hover,
+.languageButtonActive {
+  opacity: 1;
+}
+
+.languageButtonActive {
+  font-weight: 700;
+}
+
+.languageButtonCn {
+  font-family: var(--font-noto-sc), var(--font-noto-jp), var(--font-cormorant),
+    sans-serif;
   font-style: normal;
   font-weight: 300;
+}
+
+.languageButtonCn.languageButtonActive {
+  font-weight: 400;
+}
+
+.languageSep {
+  display: inline-block;
+  padding-inline: 0.42em;
+  font-variation-settings: "wght" 300;
+  opacity: 0.45;
 }
 
 .sep {
@@ -313,9 +373,25 @@
   gap: 0;
   font-style: italic;
   font-weight: 500;
-  font-size: clamp(0.875rem, 0.9vw, 1.25rem);
+  font-size: clamp(1.3rem, 0.9vw, 2rem);
   line-height: 1.25;
   letter-spacing: -0.0225rem;
+}
+
+.menuList li {
+  display: flex;
+  align-items: baseline;
+}
+
+.menuList li::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.18em;
+  height: 0.18em;
+  margin-right: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateY(-0.18em);
 }
 
 .menuCn {
@@ -502,7 +578,8 @@
   }
 }
 
-:global(body[data-header-state="menu-open"]) .menuTitle {
+:global(body[data-header-state="menu-open"]) .desktopLanguageSwitcher {
+  display: inline-flex;
   font-size: 1.5rem;
   font-style: normal;
   font-weight: 300;
@@ -512,6 +589,7 @@
   @media (max-width: 800px) {
     font-style: italic;
     font-size: 2rem;
+    line-height: 1;
   }
 }
 

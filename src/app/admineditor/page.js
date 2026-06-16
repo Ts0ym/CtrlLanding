@@ -10,15 +10,61 @@ const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 const STORAGE_TOKEN_KEY = "admin-editor-token";
 const STATIC_USERNAME = "admin";
 
+const EMPTY_BLOCK = {
+  sortOrder: 0,
+  mediaType: "image",
+  imageSrc: "",
+  videoEmbedCode: "",
+  description: "",
+  descriptionEn: "",
+  descriptionCn: "",
+  showDividerAfter: false,
+};
+
 const EMPTY_FORM = {
   id: null,
   sortOrder: 0,
   date: "",
+  dateEn: "",
+  dateCn: "",
   title: "",
+  titleEn: "",
+  titleCn: "",
   imageSrc: "",
   videoEmbedCode: "",
+  endVideoEmbedCode: "",
   description: "",
+  descriptionEn: "",
+  descriptionCn: "",
+  showDividerAfter: false,
+  blocks: [],
 };
+
+function normalizeBlockMediaType(mediaType) {
+  return ["image", "video", "text"].includes(mediaType) ? mediaType : "image";
+}
+
+function createEmptyBlock(sortOrder = 0) {
+  return {
+    ...EMPTY_BLOCK,
+    sortOrder,
+  };
+}
+
+function normalizeBlocks(blocks) {
+  return Array.isArray(blocks)
+    ? blocks.map((block, index) => ({
+        sortOrder: index,
+        mediaType: normalizeBlockMediaType(block.mediaType),
+        imageSrc: block.imageSrc ?? "",
+        videoEmbedCode: block.videoEmbedCode ?? "",
+        description: block.description ?? "",
+        descriptionEn: block.descriptionEn ?? "",
+        descriptionCn: block.descriptionCn ?? "",
+        showDividerAfter: Boolean(block.showDividerAfter),
+      }))
+    : [];
+}
 
 function projectToForm(project) {
   if (!project) return EMPTY_FORM;
@@ -27,10 +73,19 @@ function projectToForm(project) {
     id: project.id,
     sortOrder: project.sortOrder ?? 0,
     date: project.date ?? "",
+    dateEn: project.dateEn ?? "",
+    dateCn: project.dateCn ?? "",
     title: project.title ?? "",
+    titleEn: project.titleEn ?? "",
+    titleCn: project.titleCn ?? "",
     imageSrc: project.imageSrc ?? "",
     videoEmbedCode: project.videoEmbedCode ?? "",
+    endVideoEmbedCode: project.endVideoEmbedCode ?? "",
     description: project.description ?? "",
+    descriptionEn: project.descriptionEn ?? "",
+    descriptionCn: project.descriptionCn ?? "",
+    showDividerAfter: Boolean(project.showDividerAfter),
+    blocks: normalizeBlocks(project.blocks),
   };
 }
 
@@ -81,6 +136,7 @@ export default function AdminEditorPage() {
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPreview, setIsUploadingPreview] = useState(false);
+  const [uploadingBlockIndex, setUploadingBlockIndex] = useState(null);
   const [isReordering, setIsReordering] = useState(false);
   const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -254,11 +310,16 @@ export default function AdminEditorPage() {
   };
 
   const handleFieldChange = (event) => {
-    const { name, value } = event.target;
+    const { checked, name, type, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
-      [name]: name === "sortOrder" ? Number(value) || 0 : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : name === "sortOrder"
+            ? Number(value) || 0
+            : value,
     }));
   };
 
@@ -298,6 +359,106 @@ export default function AdminEditorPage() {
       ...prev,
       imageSrc: "",
     }));
+    setNotice("");
+    setError("");
+  };
+
+  const handleAddBlock = () => {
+    setForm((prev) => ({
+      ...prev,
+      blocks: [
+        ...normalizeBlocks(prev.blocks),
+        createEmptyBlock(prev.blocks?.length ?? 0),
+      ],
+    }));
+    setNotice("");
+    setError("");
+  };
+
+  const handleBlockFieldChange = (index, field, value) => {
+    setForm((prev) => {
+      const blocks = normalizeBlocks(prev.blocks);
+      const nextBlock = {
+        ...blocks[index],
+        [field]: value,
+      };
+
+      if (field === "mediaType") {
+        nextBlock.mediaType = normalizeBlockMediaType(value);
+        nextBlock.imageSrc =
+          nextBlock.mediaType === "image" ? nextBlock.imageSrc : "";
+        nextBlock.videoEmbedCode =
+          nextBlock.mediaType === "video" ? nextBlock.videoEmbedCode : "";
+      }
+
+      return {
+        ...prev,
+        blocks: blocks.map((block, blockIndex) =>
+          blockIndex === index ? nextBlock : block,
+        ),
+      };
+    });
+  };
+
+  const handleMoveBlock = (index, direction) => {
+    setForm((prev) => {
+      const blocks = normalizeBlocks(prev.blocks);
+      const targetIndex = index + direction;
+
+      if (targetIndex < 0 || targetIndex >= blocks.length) {
+        return prev;
+      }
+
+      const nextBlocks = [...blocks];
+      const [movedBlock] = nextBlocks.splice(index, 1);
+      nextBlocks.splice(targetIndex, 0, movedBlock);
+
+      return {
+        ...prev,
+        blocks: normalizeBlocks(nextBlocks),
+      };
+    });
+  };
+
+  const handleRemoveBlock = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      blocks: normalizeBlocks(prev.blocks).filter((_, blockIndex) => blockIndex !== index),
+    }));
+    setNotice("");
+    setError("");
+  };
+
+  const handleBlockImageUpload = async (index, event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setUploadingBlockIndex(index);
+    setError("");
+      setNotice("Block image uploaded.");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const payload = await request("/uploads/project-preview", {
+        method: "POST",
+        body: formData,
+      });
+
+      handleBlockFieldChange(index, "imageSrc", payload.path);
+      setNotice("Block image uploaded.");
+    } catch (uploadError) {
+      setError(uploadError.message || "Failed to upload block image.");
+    } finally {
+      event.target.value = "";
+      setUploadingBlockIndex(null);
+    }
+  };
+
+  const handleBlockImageRemove = (index) => {
+    handleBlockFieldChange(index, "imageSrc", "");
     setNotice("");
     setError("");
   };
@@ -471,10 +632,19 @@ export default function AdminEditorPage() {
     const payload = {
       sortOrder: Number(form.sortOrder) || 0,
       date: form.date,
+      dateEn: form.dateEn,
+      dateCn: form.dateCn,
       title: form.title,
+      titleEn: form.titleEn,
+      titleCn: form.titleCn,
       imageSrc: form.imageSrc,
       videoEmbedCode: form.videoEmbedCode,
+      endVideoEmbedCode: form.endVideoEmbedCode,
       description: form.description,
+      descriptionEn: form.descriptionEn,
+      descriptionCn: form.descriptionCn,
+      showDividerAfter: Boolean(form.showDividerAfter),
+      blocks: normalizeBlocks(form.blocks),
     };
 
     try {
@@ -677,6 +847,32 @@ export default function AdminEditorPage() {
               </div>
 
               <div className={styles.field}>
+                <label className={styles.label} htmlFor="dateEn">
+                  Date EN
+                </label>
+                <input
+                  id="dateEn"
+                  className={styles.input}
+                  name="dateEn"
+                  value={form.dateEn}
+                  onChange={handleFieldChange}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="dateCn">
+                  Date CN
+                </label>
+                <input
+                  id="dateCn"
+                  className={styles.input}
+                  name="dateCn"
+                  value={form.dateCn}
+                  onChange={handleFieldChange}
+                />
+              </div>
+
+              <div className={styles.field}>
                 <label className={styles.label} htmlFor="title">
                   Название
                 </label>
@@ -693,6 +889,34 @@ export default function AdminEditorPage() {
                 <div className={styles.fieldHint}>
                   Используй Enter, чтобы задать перенос строки в заголовке проекта.
                 </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="titleEn">
+                  Title EN
+                </label>
+                <textarea
+                  id="titleEn"
+                  className={`${styles.input} ${styles.titleTextarea}`}
+                  name="titleEn"
+                  value={form.titleEn}
+                  onChange={handleFieldChange}
+                  rows={3}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="titleCn">
+                  Title CN
+                </label>
+                <textarea
+                  id="titleCn"
+                  className={`${styles.input} ${styles.titleTextarea}`}
+                  name="titleCn"
+                  value={form.titleCn}
+                  onChange={handleFieldChange}
+                  rows={3}
+                />
               </div>
 
               <div className={styles.field}>
@@ -756,6 +980,23 @@ export default function AdminEditorPage() {
               </div>
 
               <div className={styles.field}>
+                <label className={styles.label} htmlFor="endVideoEmbedCode">
+                  Видео в конце страницы
+                </label>
+                <textarea
+                  id="endVideoEmbedCode"
+                  className={styles.textarea}
+                  name="endVideoEmbedCode"
+                  value={form.endVideoEmbedCode}
+                  onChange={handleFieldChange}
+                  placeholder="https://youtube.com/... или https://vk.com/... или https://vimeo.com/... или https://kinescope.io/..."
+                />
+                <div className={styles.fieldHint}>
+                  Это видео будет показано в конце страницы проекта на всю ширину экрана.
+                </div>
+              </div>
+
+              <div className={styles.field}>
                 <label className={styles.label} htmlFor="description">
                   Описание
                 </label>
@@ -767,6 +1008,240 @@ export default function AdminEditorPage() {
                   onChange={handleFieldChange}
                   required
                 />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="descriptionEn">
+                  Description EN
+                </label>
+                <textarea
+                  id="descriptionEn"
+                  className={styles.textarea}
+                  name="descriptionEn"
+                  value={form.descriptionEn}
+                  onChange={handleFieldChange}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="descriptionCn">
+                  Description CN
+                </label>
+                <textarea
+                  id="descriptionCn"
+                  className={styles.textarea}
+                  name="descriptionCn"
+                  value={form.descriptionCn}
+                  onChange={handleFieldChange}
+                />
+              </div>
+
+              <label className={styles.checkboxField}>
+                <input
+                  className={styles.checkboxInput}
+                  type="checkbox"
+                  name="showDividerAfter"
+                  checked={form.showDividerAfter}
+                  onChange={handleFieldChange}
+                />
+                <span>Добавить линию-разделитель после основного блока</span>
+              </label>
+
+              <div className={styles.blocksEditor}>
+                <div className={styles.blocksHeader}>
+                  <div>
+                    <h3 className={styles.blocksTitle}>Дополнительные блоки</h3>
+                    <p className={styles.blocksHint}>
+                      Блоки показываются ниже основного блока проекта.
+                    </p>
+                  </div>
+                  <button
+                    className={styles.secondaryBtn}
+                    type="button"
+                    onClick={handleAddBlock}
+                  >
+                    Добавить блок
+                  </button>
+                </div>
+
+                {normalizeBlocks(form.blocks).length === 0 ? (
+                  <div className={styles.previewPlaceholder}>
+                    Дополнительных блоков пока нет
+                  </div>
+                ) : (
+                  <div className={styles.blocksList}>
+                    {normalizeBlocks(form.blocks).map((block, index) => (
+                      <section className={styles.blockCard} key={`block-${index}`}>
+                        <div className={styles.blockCardHeader}>
+                          <h4 className={styles.blockCardTitle}>Блок {index + 1}</h4>
+                          <div className={styles.blockActions}>
+                            <button
+                              className={styles.secondaryBtn}
+                              type="button"
+                              onClick={() => handleMoveBlock(index, -1)}
+                              disabled={index === 0}
+                            >
+                              Выше
+                            </button>
+                            <button
+                              className={styles.secondaryBtn}
+                              type="button"
+                              onClick={() => handleMoveBlock(index, 1)}
+                              disabled={index === normalizeBlocks(form.blocks).length - 1}
+                            >
+                              Ниже
+                            </button>
+                            <button
+                              className={styles.dangerBtn}
+                              type="button"
+                              onClick={() => handleRemoveBlock(index)}
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor={`block-description-${index}`}>
+                            Описание блока
+                          </label>
+                          <textarea
+                            id={`block-description-${index}`}
+                            className={styles.textarea}
+                            value={block.description}
+                            onChange={(event) =>
+                              handleBlockFieldChange(index, "description", event.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor={`block-description-en-${index}`}>
+                            Block description EN
+                          </label>
+                          <textarea
+                            id={`block-description-en-${index}`}
+                            className={styles.textarea}
+                            value={block.descriptionEn}
+                            onChange={(event) =>
+                              handleBlockFieldChange(index, "descriptionEn", event.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor={`block-description-cn-${index}`}>
+                            Block description CN
+                          </label>
+                          <textarea
+                            id={`block-description-cn-${index}`}
+                            className={styles.textarea}
+                            value={block.descriptionCn}
+                            onChange={(event) =>
+                              handleBlockFieldChange(index, "descriptionCn", event.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label} htmlFor={`block-media-type-${index}`}>
+                            Тип контента
+                          </label>
+                          <select
+                            id={`block-media-type-${index}`}
+                            className={styles.input}
+                            value={block.mediaType}
+                            onChange={(event) =>
+                              handleBlockFieldChange(index, "mediaType", event.target.value)
+                            }
+                          >
+                            <option value="image">Картинка</option>
+                            <option value="video">Видео</option>
+                            <option value="text">Текст</option>
+                          </select>
+                        </div>
+
+                        {block.mediaType === "image" ? (
+                          <div className={styles.field}>
+                            <span className={styles.label}>Картинка блока</span>
+
+                            {block.imageSrc ? (
+                              <div className={styles.previewBlock}>
+                                <img
+                                  className={styles.previewImage}
+                                  src={getPreviewUrl(block.imageSrc)}
+                                  alt=""
+                                />
+                                <div className={styles.previewMeta}>{block.imageSrc}</div>
+                              </div>
+                            ) : (
+                              <div className={styles.previewPlaceholder}>
+                                Картинка блока еще не загружена
+                              </div>
+                            )}
+
+                            <div className={styles.uploadRow}>
+                              <label className={`${styles.secondaryBtn} ${styles.fileTrigger}`}>
+                                <input
+                                  className={styles.fileInput}
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/webp,image/avif"
+                                  onChange={(event) => handleBlockImageUpload(index, event)}
+                                  disabled={uploadingBlockIndex === index}
+                                />
+                                {uploadingBlockIndex === index
+                                  ? "Загружаю..."
+                                  : "Загрузить картинку"}
+                              </label>
+
+                              {block.imageSrc ? (
+                                <button
+                                  className={styles.dangerBtn}
+                                  type="button"
+                                  onClick={() => handleBlockImageRemove(index)}
+                                  disabled={uploadingBlockIndex === index}
+                                >
+                                  Убрать
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : block.mediaType === "video" ? (
+                          <div className={styles.field}>
+                            <label className={styles.label} htmlFor={`block-video-${index}`}>
+                              Ссылка на видео блока
+                            </label>
+                            <textarea
+                              id={`block-video-${index}`}
+                              className={styles.textarea}
+                              value={block.videoEmbedCode}
+                              onChange={(event) =>
+                                handleBlockFieldChange(index, "videoEmbedCode", event.target.value)
+                              }
+                              placeholder="https://youtube.com/... или https://vk.com/... или https://vimeo.com/... или https://kinescope.io/..."
+                            />
+                          </div>
+                        ) : null}
+
+                        <label className={styles.checkboxField}>
+                          <input
+                            className={styles.checkboxInput}
+                            type="checkbox"
+                            checked={block.showDividerAfter}
+                            onChange={(event) =>
+                              handleBlockFieldChange(
+                                index,
+                                "showDividerAfter",
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Добавить линию-разделитель после блока</span>
+                        </label>
+                      </section>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className={styles.actions}>

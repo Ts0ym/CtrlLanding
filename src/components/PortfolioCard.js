@@ -1,5 +1,6 @@
 import styles from "./PortfolioCard.module.scss";
 import { getAssetUrl } from "../lib/assetUrl";
+import { getLocalizedProjectField } from "../lib/portfolioProjects";
 
 function renderTitleWithChineseSpans(title) {
   const value = String(title ?? "");
@@ -19,7 +20,10 @@ function renderTitleWithChineseSpans(title) {
   });
 }
 
-export default function PortfolioCard({ card, onClick }) {
+export default function PortfolioCard({ card, language = "ru", onClick }) {
+  const date = getLocalizedProjectField(card, "date", language);
+  const title = getLocalizedProjectField(card, "title", language);
+
   return (
     <article className={styles.card}>
       <button
@@ -36,8 +40,8 @@ export default function PortfolioCard({ card, onClick }) {
           />
         </div>
         <div className={styles.meta}>
-          <p className={styles.date}>{card.date}</p>
-          <p className={styles.title}>{renderTitleWithChineseSpans(card?.title)}</p>
+          <p className={styles.date}>{date}</p>
+          <p className={styles.title}>{renderTitleWithChineseSpans(title)}</p>
         </div>
       </button>
     </article>

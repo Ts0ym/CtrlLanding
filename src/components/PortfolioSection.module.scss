@@ -28,7 +28,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(17.9375rem, 1fr));
   column-gap: clamp(1.125rem, 1.2vw, 2rem);
-  row-gap: 3rem;
+  row-gap: 1rem;
   justify-content: stretch;
 
   @media (max-width: 1200px) {

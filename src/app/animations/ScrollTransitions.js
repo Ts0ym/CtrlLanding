@@ -35,6 +35,8 @@ export default function ScrollTransitions() {
 
     let tl;
     let tickerFn;
+    let sectionSnapTrigger;
+    let sectionSnapPoints = [];
 
     const aboutEarly = document.querySelector('[data-scroll="about"]');
     if (aboutEarly) {
@@ -192,6 +194,101 @@ export default function ScrollTransitions() {
       window.__syncHeaderState = syncHeaderState;
       syncHeaderState();
       ScrollTrigger.refresh();
+
+      const workSection = document.querySelector("#work");
+      const contactSection = document.querySelector("#contact");
+      const stageTrigger = tl.scrollTrigger;
+
+      if (workSection && contactSection && stageTrigger) {
+        const updateSectionSnapPoints = () => {
+          const start = stageTrigger.end;
+          const end = ScrollTrigger.maxScroll(window);
+          const range = Math.max(1, end - start);
+          const smoother = ScrollSmoother.get?.();
+          const scrollTop = smoother?.scrollTop?.() ?? window.scrollY ?? 0;
+          const clampPoint = gsap.utils.clamp(start, end);
+          const getTop = (el) =>
+            el.getBoundingClientRect().top + scrollTop;
+
+          const workSnapBefore = Math.max(260, window.innerHeight * 0.9);
+          const workSnapAfter = Math.max(120, window.innerHeight * 0.25);
+          const contactSnapBefore = Math.max(220, window.innerHeight * 0.7);
+          const contactSnapAfter = Math.max(120, window.innerHeight * 0.25);
+
+          sectionSnapPoints = [
+            {
+              scroll: clampPoint(getTop(workSection)),
+              beforeLimit: workSnapBefore,
+              afterLimit: workSnapAfter,
+            },
+            {
+              scroll: clampPoint(getTop(contactSection)),
+              beforeLimit: contactSnapBefore,
+              afterLimit: contactSnapAfter,
+            },
+          ]
+            .filter(
+              (point, index, arr) =>
+                arr.findIndex((item) => item.scroll === point.scroll) === index,
+            )
+            .map((point) => ({
+              ...point,
+              progress: (point.scroll - start) / range,
+            }));
+        };
+
+        sectionSnapTrigger?.kill();
+        sectionSnapTrigger = ScrollTrigger.create({
+          id: "section-snap",
+          trigger: document.body,
+          start: () => stageTrigger.end,
+          end: () => ScrollTrigger.maxScroll(window),
+          onRefresh: updateSectionSnapPoints,
+          snap: {
+            snapTo: (progress) => {
+              const now = window.performance?.now?.() ?? Date.now();
+              const suppressedUntil = window.__suppressStageSnapUntil ?? 0;
+
+              if (now < suppressedUntil) return progress;
+
+              const start = stageTrigger.end;
+              const end = ScrollTrigger.maxScroll(window);
+              const range = Math.max(1, end - start);
+              const currentScroll = start + progress * range;
+              const points = sectionSnapPoints
+                .map((point) => ({
+                  progress: point.progress,
+                  scroll: point.scroll,
+                  beforeLimit: point.beforeLimit,
+                  afterLimit: point.afterLimit,
+                  distance: Math.abs(point.scroll - currentScroll),
+                  isBefore: currentScroll <= point.scroll,
+                }))
+                .filter((point) =>
+                  point.isBefore
+                    ? point.distance <= point.beforeLimit
+                    : point.distance <= point.afterLimit,
+                );
+
+              if (!points.length) return progress;
+
+              const closest = points.reduce((currentClosest, point) =>
+                point.distance < currentClosest.distance ? point : currentClosest,
+              );
+
+              return closest.progress;
+            },
+            delay: 0.08,
+            duration: useMobilePerfMode
+              ? { min: 0.14, max: 0.22 }
+              : { min: 0.18, max: 0.32 },
+            ease: "power1.out",
+            inertia: false,
+          },
+          invalidateOnRefresh: true,
+        });
+        updateSectionSnapPoints();
+      }
     };
 
     const onDone = () => init();
@@ -201,6 +298,7 @@ export default function ScrollTransitions() {
     return () => {
       delete window.__syncHeaderState;
       if (tickerFn) gsap.ticker.remove(tickerFn);
+      sectionSnapTrigger?.kill();
       tl?.scrollTrigger?.kill();
       tl?.kill();
     };

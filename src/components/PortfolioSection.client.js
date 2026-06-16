@@ -3,17 +3,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import pageStyles from "../app/page.module.scss";
 import styles from "./PortfolioSection.module.scss";
 import PortfolioCard from "./PortfolioCard";
 import PortfolioViewerOverlay from "./PortfolioViewerOverlay.client";
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  isSupportedLanguage,
+} from "../lib/languages";
+import {
+  getLocalizedProjectDescription,
+  getLocalizedProjectField,
+} from "../lib/portfolioProjects";
 
-gsap.registerPlugin(ScrollSmoother);
+gsap.registerPlugin(ScrollSmoother, ScrollTrigger);
 
 const PORTFOLIO_VIEWER_HISTORY_KEY = "__portfolioViewer";
 
 export default function PortfolioSection({ cards }) {
   const [activeIndex, setActiveIndex] = useState(null);
+  const [activeLanguage, setActiveLanguage] = useState(DEFAULT_LANGUAGE);
   const prevBodyOverflow = useRef("");
   const documentLockedRef = useRef(false);
   const prevBodyPosition = useRef("");
@@ -26,10 +37,64 @@ export default function PortfolioSection({ cards }) {
   const activeIndexRef = useRef(null);
 
   const safeCards = useMemo(() => cards ?? [], [cards]);
+  const localizedCards = useMemo(
+    () =>
+      safeCards.map((card) => ({
+        ...card,
+        date: getLocalizedProjectField(card, "date", activeLanguage),
+        title: getLocalizedProjectField(card, "title", activeLanguage),
+        description: getLocalizedProjectDescription(card, activeLanguage),
+        blocks: Array.isArray(card.blocks)
+          ? card.blocks.map((block) => ({
+              ...block,
+              description: getLocalizedProjectDescription(block, activeLanguage),
+            }))
+          : [],
+      })),
+    [activeLanguage, safeCards],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    setActiveLanguage(
+      isSupportedLanguage(storedLanguage) ? storedLanguage : DEFAULT_LANGUAGE,
+    );
+
+    const onLanguageChange = (event) => {
+      const nextLanguage = event.detail?.language;
+      if (isSupportedLanguage(nextLanguage)) {
+        setActiveLanguage(nextLanguage);
+      }
+    };
+
+    window.addEventListener("language:change", onLanguageChange);
+    return () => window.removeEventListener("language:change", onLanguageChange);
+  }, []);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const refreshScrollTriggers = () => {
+      ScrollTrigger.refresh();
+      window.__syncHeaderState?.();
+    };
+
+    let innerRafId = 0;
+    const rafId = window.requestAnimationFrame(() => {
+      innerRafId = window.requestAnimationFrame(refreshScrollTriggers);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.cancelAnimationFrame(innerRafId);
+    };
+  }, [safeCards.length]);
 
   const lockDocumentScroll = () => {
     if (typeof window === "undefined" || documentLockedRef.current) return;
@@ -195,10 +260,11 @@ export default function PortfolioSection({ cards }) {
         </div>
 
         <div className={styles.portfolioGrid} aria-label="Portfolio cards">
-          {safeCards.map((c, idx) => (
+          {localizedCards.map((c, idx) => (
             <PortfolioCard
               key={c.id ?? idx}
               card={c}
+              language={activeLanguage}
               onClick={() => setActiveIndex(idx)}
             />
           ))}
@@ -207,8 +273,9 @@ export default function PortfolioSection({ cards }) {
 
       {activeIndex !== null && (
         <PortfolioViewerOverlay
-          cards={safeCards}
+          cards={localizedCards}
           initialIndex={activeIndex}
+          language={activeLanguage}
           onClose={() => setActiveIndex(null)}
         />
       )}
