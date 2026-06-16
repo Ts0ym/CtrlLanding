@@ -16,6 +16,7 @@ export default function ScrollTransitions() {
     const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
     const useInstantScrub = Boolean(ScrollTrigger.isTouch || isMobileViewport);
     const useMobilePerfMode = useInstantScrub;
+    const enableScrollSnap = !useMobilePerfMode;
     const STAGE_SCROLL_END_DESKTOP = "+=130%";
     const STAGE_SCROLL_END_MOBILE = "+=110%";
     const STAGE_SCRUB_DESKTOP = 1;
@@ -125,7 +126,7 @@ export default function ScrollTransitions() {
           end: useMobilePerfMode ? STAGE_SCROLL_END_MOBILE : STAGE_SCROLL_END_DESKTOP,
           // Add extra inertia only for the Hero -> About transition.
           scrub: useInstantScrub ? true : STAGE_SCRUB_DESKTOP,
-          snap: stageSnap,
+          snap: enableScrollSnap ? stageSnap : false,
           pin: true,
           anticipatePin: useInstantScrub ? 0 : 1,
           invalidateOnRefresh: true,
@@ -199,7 +200,7 @@ export default function ScrollTransitions() {
       const contactSection = document.querySelector("#contact");
       const stageTrigger = tl.scrollTrigger;
 
-      if (workSection && contactSection && stageTrigger) {
+      if (enableScrollSnap && workSection && contactSection && stageTrigger) {
         const updateSectionSnapPoints = () => {
           const start = stageTrigger.end;
           const end = ScrollTrigger.maxScroll(window);
