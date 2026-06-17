@@ -31,6 +31,10 @@ const DEFAULT_VIDEO_VOLUME = 0.5;
 const VIDEO_VOLUME_STORAGE_KEY = "portfolio-viewer-volume";
 const VIDEO_MUTED_STORAGE_KEY = "portfolio-viewer-muted";
 const PORTFOLIO_VIEWER_HISTORY_KEY = "__portfolioViewer";
+const END_VIDEO_INTERACTION_MS = 1800;
+const END_VIDEO_SNAP_IDLE_MS = 120;
+const END_VIDEO_SNAP_DURATION = 0.42;
+const END_VIDEO_SNAP_THRESHOLD = 0.5;
 
 function clampVolume(value) {
   const num = Number(value);
@@ -223,6 +227,22 @@ function resolveEmbedConfig(videoEmbedCode) {
   );
 }
 
+function getAutoplayEmbedSrc(src) {
+  if (!src) return src;
+
+  try {
+    const base =
+      typeof window === "undefined" ? "https://localhost" : window.location.href;
+    const url = new URL(src, base);
+    url.searchParams.set("autoplay", "1");
+    url.searchParams.set("playsinline", "1");
+
+    return url.toString();
+  } catch {
+    return src;
+  }
+}
+
 function hasHanScript(text) {
   return /[\p{Script=Han}]/u.test(text);
 }
@@ -315,15 +335,16 @@ function setPortfolioViewerStage(stage) {
   });
 }
 
-function StaticProjectMedia({ item, title, loading = "lazy" }) {
+function StaticProjectMedia({ item, title, loading = "lazy", autoPlay = false }) {
   const mediaType = item?.mediaType || (item?.videoEmbedCode ? "video" : "image");
   const embedConfig = mediaType === "video" ? resolveEmbedConfig(item?.videoEmbedCode) : null;
 
   if (embedConfig) {
     return (
       <iframe
+        key={autoPlay ? "autoplay" : "idle"}
         className={`${styles.mediaIframe} ${styles.mediaIframeReady}`}
-        src={embedConfig.src}
+        src={autoPlay ? getAutoplayEmbedSrc(embedConfig.src) : embedConfig.src}
         title={title || "Project media"}
         allow={embedConfig.allow}
         allowFullScreen
@@ -398,6 +419,13 @@ export default function PortfolioViewerOverlay({
   const descRef = useRef(null);
   const mediaRef = useRef(null);
   const endVideoBlockRef = useRef(null);
+  const endVideoProgressRef = useRef(0);
+  const endVideoTweenRef = useRef(null);
+  const endVideoSnapTimeoutRef = useRef(0);
+  const endVideoLastDeltaRef = useRef(0);
+  const endVideoTouchYRef = useRef(0);
+  const isEndVideoPinnedRef = useRef(false);
+  const endVideoInteractionTimeoutRef = useRef(0);
   const videoRefs = useRef([]);
   const fullscreenVideoRef = useRef(false);
   const didInitRef = useRef(false);
@@ -406,6 +434,8 @@ export default function PortfolioViewerOverlay({
   const savedVolumeRef = useRef(DEFAULT_VIDEO_VOLUME);
   const savedMutedRef = useRef(false);
   const [isEndVideoPinned, setIsEndVideoPinned] = useState(false);
+  const [isEndVideoInteractive, setIsEndVideoInteractive] = useState(false);
+  const [shouldAutoplayEndVideo, setShouldAutoplayEndVideo] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -585,6 +615,28 @@ export default function PortfolioViewerOverlay({
       }
     });
   }, [mounted, previewActiveIndex, slides.length]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+
+    const targets = [document.documentElement, document.body];
+
+    targets.forEach((node) => {
+      if (!node) return;
+
+      if (isEndVideoPinned) {
+        node.setAttribute("data-portfolio-end-video", "open");
+      } else {
+        node.removeAttribute("data-portfolio-end-video");
+      }
+    });
+
+    return () => {
+      targets.forEach((node) => {
+        node?.removeAttribute("data-portfolio-end-video");
+      });
+    };
+  }, [isEndVideoPinned]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -900,6 +952,22 @@ export default function PortfolioViewerOverlay({
     goTo(activeIndexRef.current + dir);
   };
 
+  const setEndVideoInteraction = (nextInteractive) => {
+    if (endVideoInteractionTimeoutRef.current) {
+      window.clearTimeout(endVideoInteractionTimeoutRef.current);
+      endVideoInteractionTimeoutRef.current = 0;
+    }
+
+    setIsEndVideoInteractive(nextInteractive);
+
+    if (nextInteractive) {
+      endVideoInteractionTimeoutRef.current = window.setTimeout(() => {
+        setIsEndVideoInteractive(false);
+        endVideoInteractionTimeoutRef.current = 0;
+      }, END_VIDEO_INTERACTION_MS);
+    }
+  };
+
   useEffect(() => {
     if (!mounted || !isMax1200) return;
 
@@ -976,42 +1044,232 @@ export default function PortfolioViewerOverlay({
   const hasEndVideo = Boolean(active?.endVideoEmbedCode);
 
   useEffect(() => {
+    setIsEndVideoInteractive(false);
+    setShouldAutoplayEndVideo(false);
+
+    if (!hasEndVideo || isMax1200) {
+      return undefined;
+    }
+
+    return () => {
+      if (!endVideoInteractionTimeoutRef.current) return;
+      window.clearTimeout(endVideoInteractionTimeoutRef.current);
+      endVideoInteractionTimeoutRef.current = 0;
+    };
+  }, [hasEndVideo, isMax1200, displayIndex]);
+
+  useLayoutEffect(() => {
     if (!mounted || !hasEndVideo || isMax1200) {
+      endVideoProgressRef.current = 0;
+      isEndVideoPinnedRef.current = false;
       setIsEndVideoPinned(false);
       return;
     }
 
     const scrollEl = overlayContentRef.current;
+    const overlayEl = overlayRef.current;
     const endVideoEl = endVideoBlockRef.current;
-    if (!scrollEl || !endVideoEl) return;
+    if (!scrollEl || !overlayEl || !endVideoEl) return;
+    const getViewportHeight = () =>
+      Math.max(1, window.visualViewport?.height ?? window.innerHeight);
 
-    let frame = 0;
+    gsap.set(endVideoEl, {
+      "--end-video-y": "100%",
+      "--end-video-opacity": 0,
+      pointerEvents: "none",
+    });
 
-    const updatePinnedState = () => {
-      frame = 0;
-      const scrollRect = scrollEl.getBoundingClientRect();
-      const videoRect = endVideoEl.getBoundingClientRect();
-      const nextPinned =
-        videoRect.top <= scrollRect.top + 1 && videoRect.bottom > scrollRect.top + 1;
-
-      setIsEndVideoPinned(nextPinned);
+    const getMaxScroll = () => {
+      return Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
     };
 
-    const requestUpdate = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(updatePinnedState);
+    const getScrollTop = () => scrollEl.scrollTop;
+
+    const setScrollTop = (value) => {
+      const nextValue = Math.max(0, Math.min(getMaxScroll(), value));
+      scrollEl.scrollTop = nextValue;
     };
 
-    requestUpdate();
-    scrollEl.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-    window.visualViewport?.addEventListener("resize", requestUpdate);
+    const isAtBottom = () => getScrollTop() >= getMaxScroll() - 1;
+
+    const getRevealDistance = () => getViewportHeight();
+
+    const clearEndVideoSnap = () => {
+      if (!endVideoSnapTimeoutRef.current) return;
+      window.clearTimeout(endVideoSnapTimeoutRef.current);
+      endVideoSnapTimeoutRef.current = 0;
+    };
+
+    const setEndVideoProgress = (
+      nextProgress,
+      { duration = 0.18, ease = "power2.out" } = {},
+    ) => {
+      const progress = Math.min(1, Math.max(0, nextProgress));
+      const nextPinned = progress > 0.001;
+      const nextAutoplay = progress >= 0.999;
+
+      endVideoProgressRef.current = progress;
+      setShouldAutoplayEndVideo((current) =>
+        current === nextAutoplay ? current : nextAutoplay,
+      );
+
+      if (!nextAutoplay) {
+        setEndVideoInteraction(false);
+      }
+
+      endVideoTweenRef.current?.kill();
+      endVideoTweenRef.current = gsap.to(endVideoEl, {
+        "--end-video-y": `${(1 - progress) * 100}%`,
+        "--end-video-opacity": progress,
+        duration,
+        ease,
+        overwrite: true,
+      });
+
+      if (isAtBottom() && getScrollTop() !== getMaxScroll()) {
+        setScrollTop(getMaxScroll());
+      }
+
+      if (isEndVideoPinnedRef.current !== nextPinned) {
+        isEndVideoPinnedRef.current = nextPinned;
+        setIsEndVideoPinned(nextPinned);
+      }
+    };
+
+    const snapEndVideo = () => {
+      endVideoSnapTimeoutRef.current = 0;
+
+      const progress = endVideoProgressRef.current;
+      if (progress <= 0.001 || progress >= 0.999) return;
+
+      const lastDelta = endVideoLastDeltaRef.current;
+      const target =
+        lastDelta > 0
+          ? 1
+          : lastDelta < 0
+            ? 0
+            : progress >= END_VIDEO_SNAP_THRESHOLD
+              ? 1
+              : 0;
+
+      setEndVideoProgress(target, {
+        duration: END_VIDEO_SNAP_DURATION,
+        ease: "power3.out",
+      });
+    };
+
+    const scheduleEndVideoSnap = () => {
+      const progress = endVideoProgressRef.current;
+      clearEndVideoSnap();
+
+      if (progress <= 0.001 || progress >= 0.999) return;
+
+      endVideoSnapTimeoutRef.current = window.setTimeout(
+        snapEndVideo,
+        END_VIDEO_SNAP_IDLE_MS,
+      );
+    };
+
+    const consumeDelta = (deltaY, { snap = true } = {}) => {
+      if (!Number.isFinite(deltaY) || deltaY === 0) return false;
+
+      const currentProgress = endVideoProgressRef.current;
+      const maxScroll = getMaxScroll();
+      const remainingScroll = Math.max(0, maxScroll - getScrollTop());
+      const shouldRevealThreshold = Math.max(2, Math.abs(deltaY) * 1.2);
+      const shouldReveal =
+        deltaY > 0 &&
+        (currentProgress > 0 ||
+          isAtBottom() ||
+          remainingScroll <= shouldRevealThreshold);
+      const shouldHide = deltaY < 0 && currentProgress > 0;
+
+      if (!shouldReveal && !shouldHide) return false;
+
+      if (shouldReveal) {
+        setScrollTop(maxScroll);
+      }
+
+      if (Math.abs(deltaY) > 0.5) {
+        endVideoLastDeltaRef.current = deltaY;
+      }
+
+      setEndVideoProgress(currentProgress + deltaY / getRevealDistance());
+      if (snap) scheduleEndVideoSnap();
+      return true;
+    };
+
+    const onWheel = (event) => {
+      if (!consumeDelta(event.deltaY)) return;
+      event.preventDefault();
+    };
+
+    const onTouchStart = (event) => {
+      if (!event.touches?.length) return;
+      clearEndVideoSnap();
+      endVideoTouchYRef.current = event.touches[0].clientY;
+    };
+
+    const onTouchMove = (event) => {
+      if (!event.touches?.length) return;
+
+      const nextY = event.touches[0].clientY;
+      const deltaY = endVideoTouchYRef.current - nextY;
+      endVideoTouchYRef.current = nextY;
+
+      if (!consumeDelta(deltaY, { snap: false })) return;
+      event.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      scheduleEndVideoSnap();
+    };
+
+    const onScroll = () => {
+      if (endVideoProgressRef.current <= 0) return;
+      setScrollTop(getMaxScroll());
+    };
+
+    setEndVideoProgress(0);
+    document.addEventListener("wheel", onWheel, {
+      passive: false,
+      capture: true,
+    });
+    document.addEventListener("touchstart", onTouchStart, {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("touchmove", onTouchMove, {
+      passive: false,
+      capture: true,
+    });
+    document.addEventListener("touchend", onTouchEnd, {
+      passive: true,
+      capture: true,
+    });
+    document.addEventListener("touchcancel", onTouchEnd, {
+      passive: true,
+      capture: true,
+    });
+    scrollEl.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      scrollEl.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-      window.visualViewport?.removeEventListener("resize", requestUpdate);
+      clearEndVideoSnap();
+      document.removeEventListener("wheel", onWheel, true);
+      document.removeEventListener("touchstart", onTouchStart, true);
+      document.removeEventListener("touchmove", onTouchMove, true);
+      document.removeEventListener("touchend", onTouchEnd, true);
+      document.removeEventListener("touchcancel", onTouchEnd, true);
+      scrollEl.removeEventListener("scroll", onScroll);
+      endVideoTweenRef.current?.kill();
+      endVideoTweenRef.current = null;
+      endVideoSnapTimeoutRef.current = 0;
+      endVideoLastDeltaRef.current = 0;
+      endVideoProgressRef.current = 0;
+      endVideoEl.style.removeProperty("--end-video-y");
+      endVideoEl.style.removeProperty("--end-video-opacity");
+      gsap.set(endVideoEl, { clearProps: "pointerEvents" });
+      isEndVideoPinnedRef.current = false;
       setIsEndVideoPinned(false);
     };
   }, [mounted, hasEndVideo, isMax1200, displayIndex]);
@@ -1028,20 +1286,21 @@ export default function PortfolioViewerOverlay({
     : [];
 
   return createPortal(
-    <div
-      className={`${styles.overlay} ${isEndVideoPinned ? styles.overlayEndVideoPinned : ""}`}
-      ref={overlayRef}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className={styles.wipe} ref={wipeRef} aria-hidden="true" />
-      <div className={styles.overlayMask} ref={overlayMaskRef}>
-        <div
-          className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""} ${
-            hasEndVideo ? styles.overlayContentHasEndVideo : ""
-          }`}
-          ref={overlayContentRef}
-        >
+    <>
+      <div
+        className={`${styles.overlay} ${isEndVideoPinned ? styles.overlayEndVideoPinned : ""}`}
+        ref={overlayRef}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className={styles.wipe} ref={wipeRef} aria-hidden="true" />
+        <div className={styles.overlayMask} ref={overlayMaskRef}>
+          <div
+            className={`${styles.overlayContent} ${isMax1200 ? styles.overlayContentMax1200 : ""} ${
+              hasEndVideo ? styles.overlayContentHasEndVideo : ""
+            }`}
+            ref={overlayContentRef}
+          >
           <section className={`${styles.projectBlock} ${styles.projectBlockMain}`}>
             <button type="button" className={styles.backBtn} onClick={handleClose}>
               <Image
@@ -1237,8 +1496,8 @@ export default function PortfolioViewerOverlay({
             );
           })}
 
-          {hasEndVideo ? (
-            <section className={styles.endVideoBlock} ref={endVideoBlockRef}>
+          {isMax1200 && hasEndVideo ? (
+            <section className={styles.endVideoBlockMobile}>
               <div className={`${styles.media} ${styles.endVideoMedia}`}>
                 <div className={styles.mediaInner}>
                   <StaticProjectMedia
@@ -1257,9 +1516,39 @@ export default function PortfolioViewerOverlay({
           {isMax1200 && !hasEndVideo && (
             <div className={styles.mobileScrollSpacer} aria-hidden="true" />
           )}
+          </div>
         </div>
       </div>
-    </div>,
+
+      {hasEndVideo && !isMax1200 ? (
+        <section
+          className={`${styles.endVideoBlock} ${
+            isEndVideoInteractive ? styles.endVideoBlockInteractive : ""
+          }`}
+          ref={endVideoBlockRef}
+        >
+          <div className={`${styles.media} ${styles.endVideoMedia}`}>
+            <div className={styles.mediaInner}>
+              <StaticProjectMedia
+                item={{
+                  mediaType: "video",
+                  videoEmbedCode: active.endVideoEmbedCode,
+                }}
+                title={activeTitle}
+                loading="eager"
+                autoPlay={shouldAutoplayEndVideo}
+              />
+            </div>
+            <button
+              type="button"
+              className={styles.endVideoInteractionLayer}
+              aria-label="Enable video controls"
+              onClick={() => setEndVideoInteraction(true)}
+            />
+          </div>
+        </section>
+      ) : null}
+    </>,
     document.body,
   );
 }

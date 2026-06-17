@@ -132,6 +132,7 @@
 }
 
 :global(body[data-portfolio-viewer="open"]) .headerLogo {
+  z-index: 60;
   pointer-events: auto;
   cursor: pointer;
 }
@@ -155,10 +156,17 @@
   width: auto;
   display: block;
   opacity: 0.95;
+  filter: none;
+  transition: filter 0.25s ease, opacity 0.25s ease;
 
   @media (max-width: 800px) {
     height: 2.3rem;
   }
+}
+
+:global(body[data-portfolio-end-video="open"]) .headerLogoImg {
+  opacity: 1;
+  filter: invert(1);
 }
 
 .burger {
