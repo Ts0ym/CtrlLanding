@@ -14,11 +14,24 @@ export default function ScrollTransitions() {
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
+    const userAgent = window.navigator.userAgent;
+    const isMobileSafari =
+      isMobileViewport &&
+      /Safari/i.test(userAgent) &&
+      !/(CriOS|FxiOS|EdgiOS|OPiOS|Chrome|Chromium|Android|Telegram|Instagram|FBAN|FBAV)/i.test(
+        userAgent,
+      );
     const useInstantScrub = Boolean(ScrollTrigger.isTouch || isMobileViewport);
     const useMobilePerfMode = useInstantScrub;
+    const useTextForce3D = useMobilePerfMode && !isMobileSafari;
+    const useSafariStageFallback = isMobileSafari;
+    const getElementShift = (multiplier) => (_, el) =>
+      Math.max(1, el?.offsetHeight || el?.getBoundingClientRect?.().height || 1) *
+      multiplier;
     const enableScrollSnap = !useMobilePerfMode;
     const STAGE_SCROLL_END_DESKTOP = "+=130%";
     const STAGE_SCROLL_END_MOBILE = "+=110%";
+    const STAGE_SCROLL_END_SAFARI = "+=180%";
     const STAGE_SCRUB_DESKTOP = 1;
     const stageSnap = {
       snapTo: (value) => {
@@ -100,17 +113,56 @@ export default function ScrollTransitions() {
       const aboutInEls = gsap.utils.toArray('[data-scroll="about-in"]');
       const heroLogoEls = heroOutEls.filter((el) => el?.dataset?.anim === "logo");
       const heroTextEls = heroOutEls.filter((el) => el?.dataset?.anim !== "logo");
+      const playSafariStage = (self) => {
+        const animation = self?.animation;
+        if (!animation) return;
 
-      gsap.set(heroOutEls, {
-        yPercent: 0,
-        opacity: 1,
-        force3D: useMobilePerfMode,
-      });
-      gsap.set(aboutInEls, {
-        yPercent: 120,
-        opacity: useMobilePerfMode ? 1 : 0,
-        force3D: useMobilePerfMode,
-      });
+        animation.play();
+      };
+      const reverseSafariStage = (self) => {
+        const animation = self?.animation;
+        if (!animation) return;
+
+        animation.reverse();
+      };
+      const syncSafariStage = (self) => {
+        const animation = self?.animation;
+        if (!animation || !self?.isActive || animation.isActive()) return;
+
+        if (self.direction > 0 && animation.progress() <= 0.001) {
+          animation.play(0);
+        } else if (self.direction < 0 && animation.progress() >= 0.999) {
+          animation.reverse();
+        }
+      };
+
+      if (isMobileSafari) {
+        gsap.set(heroOutEls, {
+          y: 0,
+          yPercent: 0,
+          opacity: 1,
+          force3D: false,
+          willChange: "transform",
+        });
+        gsap.set(aboutInEls, {
+          y: getElementShift(1.2),
+          yPercent: 0,
+          opacity: 1,
+          force3D: false,
+          willChange: "transform",
+        });
+      } else {
+        gsap.set(heroOutEls, {
+          yPercent: 0,
+          opacity: 1,
+          force3D: useTextForce3D,
+        });
+        gsap.set(aboutInEls, {
+          yPercent: 120,
+          opacity: useMobilePerfMode ? 1 : 0,
+          force3D: useTextForce3D,
+        });
+      }
       gsap.set(aboutSection, { autoAlpha: 0, pointerEvents: "none" });
       gsap.set(root, {
         "--header-shift": "0rem",
@@ -121,12 +173,28 @@ export default function ScrollTransitions() {
         scrollTrigger: {
           id: "stage-transition",
           trigger: stage,
-          start: "top top",
+          start: useSafariStageFallback ? "top+=1 top" : "top top",
           // Shorter range = stronger scroll influence (less wheel/touch distance to finish Hero -> About).
-          end: useMobilePerfMode ? STAGE_SCROLL_END_MOBILE : STAGE_SCROLL_END_DESKTOP,
+          end: useSafariStageFallback
+            ? STAGE_SCROLL_END_SAFARI
+            : useMobilePerfMode
+              ? STAGE_SCROLL_END_MOBILE
+              : STAGE_SCROLL_END_DESKTOP,
           // Add extra inertia only for the Hero -> About transition.
-          scrub: useInstantScrub ? true : STAGE_SCRUB_DESKTOP,
+          scrub: useSafariStageFallback
+            ? false
+            : useInstantScrub
+              ? true
+              : STAGE_SCRUB_DESKTOP,
           snap: enableScrollSnap ? stageSnap : false,
+          toggleActions: useSafariStageFallback
+            ? "none none none none"
+            : undefined,
+          onEnter: useSafariStageFallback ? playSafariStage : undefined,
+          onUpdate: useSafariStageFallback ? syncSafariStage : undefined,
+          onLeave: useSafariStageFallback ? playSafariStage : undefined,
+          onEnterBack: useSafariStageFallback ? reverseSafariStage : undefined,
+          onLeaveBack: useSafariStageFallback ? reverseSafariStage : undefined,
           pin: true,
           anticipatePin: useInstantScrub ? 0 : 1,
           invalidateOnRefresh: true,
@@ -137,21 +205,38 @@ export default function ScrollTransitions() {
       if (useMobilePerfMode) {
         tl.to(
           heroTextEls,
-          { yPercent: 120, stagger: 0, duration: 1, force3D: true },
+          isMobileSafari
+            ? { y: getElementShift(1.2), stagger: 0, duration: 1, force3D: false }
+            : { yPercent: 120, stagger: 0, duration: 1, force3D: useTextForce3D },
           0
         );
 
         if (heroLogoEls.length) {
           tl.to(
             heroLogoEls,
-            { yPercent: 40, opacity: 0, duration: 0.9, force3D: true },
+            isMobileSafari
+              ? { y: getElementShift(0.4), opacity: 0, duration: 0.9, force3D: false }
+              : {
+                  yPercent: 40,
+                  opacity: 0,
+                  duration: 0.9,
+                  force3D: useTextForce3D,
+                },
             0.05
           );
         }
 
         tl.set(aboutSection, { autoAlpha: 1, pointerEvents: "auto" }, 1).to(
           aboutInEls,
-          { yPercent: 0, opacity: 1, stagger: 0, duration: 0.9, force3D: true },
+          isMobileSafari
+            ? { y: 0, opacity: 1, stagger: 0, duration: 0.9, force3D: false }
+            : {
+                yPercent: 0,
+                opacity: 1,
+                stagger: 0,
+                duration: 0.9,
+                force3D: useTextForce3D,
+              },
           1
         );
 
