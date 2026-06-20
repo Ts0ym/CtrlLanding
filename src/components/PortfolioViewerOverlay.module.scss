@@ -116,8 +116,9 @@
 }
 
 .projectBlockText {
-  min-height: 30vh;
+  min-height: 10vh;
   min-width: 0;
+  padding-bottom: 1em;
 
    @media (max-width: 1200px){
     display: block;
