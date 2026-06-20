@@ -14,6 +14,7 @@ const EMPTY_BLOCK = {
   sortOrder: 0,
   mediaType: "image",
   imageSrc: "",
+  videoSrc: "",
   videoEmbedCode: "",
   description: "",
   descriptionEn: "",
@@ -57,6 +58,7 @@ function normalizeBlocks(blocks) {
         sortOrder: index,
         mediaType: normalizeBlockMediaType(block.mediaType),
         imageSrc: block.imageSrc ?? "",
+        videoSrc: block.videoSrc ?? "",
         videoEmbedCode: block.videoEmbedCode ?? "",
         description: block.description ?? "",
         descriptionEn: block.descriptionEn ?? "",
@@ -387,6 +389,8 @@ export default function AdminEditorPage() {
         nextBlock.mediaType = normalizeBlockMediaType(value);
         nextBlock.imageSrc =
           nextBlock.mediaType === "image" ? nextBlock.imageSrc : "";
+        nextBlock.videoSrc =
+          nextBlock.mediaType === "video" ? nextBlock.videoSrc : "";
         nextBlock.videoEmbedCode =
           nextBlock.mediaType === "video" ? nextBlock.videoEmbedCode : "";
       }
@@ -459,6 +463,40 @@ export default function AdminEditorPage() {
 
   const handleBlockImageRemove = (index) => {
     handleBlockFieldChange(index, "imageSrc", "");
+    setNotice("");
+    setError("");
+  };
+
+  const handleBlockVideoUpload = async (index, event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setUploadingBlockIndex(index);
+    setError("");
+    setNotice("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const payload = await request("/uploads/project-video", {
+        method: "POST",
+        body: formData,
+      });
+
+      handleBlockFieldChange(index, "videoSrc", payload.path);
+      setNotice("Block video uploaded.");
+    } catch (uploadError) {
+      setError(uploadError.message || "Failed to upload block video.");
+    } finally {
+      event.target.value = "";
+      setUploadingBlockIndex(null);
+    }
+  };
+
+  const handleBlockVideoRemove = (index) => {
+    handleBlockFieldChange(index, "videoSrc", "");
     setNotice("");
     setError("");
   };
@@ -1220,6 +1258,52 @@ export default function AdminEditorPage() {
                               }
                               placeholder="https://youtube.com/... или https://vk.com/... или https://vimeo.com/... или https://kinescope.io/..."
                             />
+
+                            <span className={styles.label}>Видеофайл блока</span>
+
+                            {block.videoSrc ? (
+                              <div className={styles.previewBlock}>
+                                <video
+                                  className={styles.previewImage}
+                                  src={getPreviewUrl(block.videoSrc)}
+                                  muted
+                                  loop
+                                  playsInline
+                                  controls
+                                />
+                                <div className={styles.previewMeta}>{block.videoSrc}</div>
+                              </div>
+                            ) : (
+                              <div className={styles.previewPlaceholder}>
+                                Видеофайл блока еще не загружен
+                              </div>
+                            )}
+
+                            <div className={styles.uploadRow}>
+                              <label className={`${styles.secondaryBtn} ${styles.fileTrigger}`}>
+                                <input
+                                  className={styles.fileInput}
+                                  type="file"
+                                  accept="video/mp4,video/webm,video/quicktime"
+                                  onChange={(event) => handleBlockVideoUpload(index, event)}
+                                  disabled={uploadingBlockIndex === index}
+                                />
+                                {uploadingBlockIndex === index
+                                  ? "Загружаю..."
+                                  : "Загрузить видео"}
+                              </label>
+
+                              {block.videoSrc ? (
+                                <button
+                                  className={styles.dangerBtn}
+                                  type="button"
+                                  onClick={() => handleBlockVideoRemove(index)}
+                                  disabled={uploadingBlockIndex === index}
+                                >
+                                  Убрать
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         ) : null}
 

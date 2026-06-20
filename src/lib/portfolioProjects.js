@@ -1,13 +1,11 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_ADMIN_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:4000/api";
+import { getAdminApiBase, getAdminApiOrigin } from "./adminApi";
 
 export function getProjectsApiBase() {
-  return API_BASE;
+  return getAdminApiBase();
 }
 
 export function getProjectsApiOrigin() {
-  return API_BASE.replace(/\/api$/, "");
+  return getAdminApiOrigin();
 }
 
 export function getLocalizedProjectField(item, field, language) {
@@ -54,6 +52,7 @@ export function mapBackendProjectToCard(project) {
           sortOrder: block.sortOrder ?? 0,
           mediaType: block.mediaType ?? "image",
           imageSrc: block.imageSrc ?? "",
+          videoSrc: block.videoSrc ?? "",
           videoEmbedCode: block.videoEmbedCode ?? "",
           description: block.description ?? "",
           descriptionEn: block.descriptionEn ?? "",

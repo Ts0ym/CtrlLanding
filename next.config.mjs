@@ -3,6 +3,7 @@
 //assetPrefix: "/CtrlLanding",
 //NEXT_PUBLIC_BASE_PATH: "/CtrlLanding",
 const nextConfig = {
+  allowedDevOrigins: ["192.168.1.222"],
   output: "export",
   distDir: "output",
   basePath: "",

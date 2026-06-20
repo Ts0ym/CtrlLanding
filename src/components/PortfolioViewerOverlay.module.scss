@@ -497,11 +497,14 @@
 }
 
 .endVideoBlockMobile {
-  display: block;
+  display: grid;
+  place-items: center;
   flex: 0 0 auto;
   width: 100vw;
-  height: auto;
-  min-height: 0;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
+  min-height: 100svh;
   margin-top: var(--viewer-line-gap);
   margin-inline: calc(var(--pad) * -1);
   background: #000;
@@ -591,6 +594,36 @@
   height: 100%;
   object-fit: cover;
 
+}
+
+.blockMediaImage {
+  height: auto;
+  aspect-ratio: auto;
+  background: transparent;
+  overflow: visible;
+  max-height: none;
+
+  @media (max-width: 1200px) {
+    height: auto;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+
+  .mediaInner {
+    position: relative;
+    inset: auto;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .mediaImage {
+    position: static;
+    inset: auto;
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
 }
 
 .mediaPoster {

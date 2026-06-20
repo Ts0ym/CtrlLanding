@@ -353,6 +353,22 @@ function StaticProjectMedia({ item, title, loading = "lazy", autoPlay = false })
     );
   }
 
+  const mediaSource = mediaType === "video" ? resolveMediaSource(item?.videoSrc) : null;
+
+  if (mediaSource) {
+    return (
+      <video
+        className={styles.mediaVideo}
+        src={mediaSource}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+      />
+    );
+  }
+
   if (item?.imageSrc) {
     return (
       <img
@@ -1456,6 +1472,8 @@ export default function PortfolioViewerOverlay({
             );
             const mediaKey = block.id ?? `${block.sortOrder ?? index}-${index}`;
             const isTextBlock = block.mediaType === "text";
+            const isImageBlock =
+              !isTextBlock && (block.mediaType === "image" || Boolean(block.imageSrc));
 
             return (
               <Fragment key={`block-${mediaKey}`}>
@@ -1482,7 +1500,11 @@ export default function PortfolioViewerOverlay({
                     {isTextBlock ? (
                       <div className={styles.blockTextMediaPlaceholder} aria-hidden="true" />
                     ) : (
-                      <div className={`${styles.media} ${styles.blockMedia}`}>
+                      <div
+                        className={`${styles.media} ${styles.blockMedia} ${
+                          isImageBlock ? styles.blockMediaImage : ""
+                        }`}
+                      >
                         <div className={styles.mediaInner}>
                           <StaticProjectMedia item={block} title={activeTitle} />
                         </div>
@@ -1497,20 +1519,22 @@ export default function PortfolioViewerOverlay({
           })}
 
           {isMax1200 && hasEndVideo ? (
-            <section className={styles.endVideoBlockMobile}>
-              <div className={`${styles.media} ${styles.endVideoMedia}`}>
-                <div className={styles.mediaInner}>
-                  <StaticProjectMedia
-                    item={{
-                      mediaType: "video",
-                      videoEmbedCode: active.endVideoEmbedCode,
-                    }}
-                    title={activeTitle}
-                    loading="eager"
-                  />
+            <>
+              <section className={styles.endVideoBlockMobile}>
+                <div className={`${styles.media} ${styles.endVideoMedia}`}>
+                  <div className={styles.mediaInner}>
+                    <StaticProjectMedia
+                      item={{
+                        mediaType: "video",
+                        videoEmbedCode: active.endVideoEmbedCode,
+                      }}
+                      title={activeTitle}
+                      loading="eager"
+                    />
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </>
           ) : null}
 
           {isMax1200 && !hasEndVideo && (
