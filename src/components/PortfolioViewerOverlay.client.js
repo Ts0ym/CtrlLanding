@@ -1063,7 +1063,7 @@ export default function PortfolioViewerOverlay({
     setIsEndVideoInteractive(false);
     setShouldAutoplayEndVideo(false);
 
-    if (!hasEndVideo || isMax1200) {
+    if (!hasEndVideo) {
       return undefined;
     }
 
@@ -1072,10 +1072,10 @@ export default function PortfolioViewerOverlay({
       window.clearTimeout(endVideoInteractionTimeoutRef.current);
       endVideoInteractionTimeoutRef.current = 0;
     };
-  }, [hasEndVideo, isMax1200, displayIndex]);
+  }, [hasEndVideo, displayIndex]);
 
   useLayoutEffect(() => {
-    if (!mounted || !hasEndVideo || isMax1200) {
+    if (!mounted || !hasEndVideo) {
       endVideoProgressRef.current = 0;
       isEndVideoPinnedRef.current = false;
       setIsEndVideoPinned(false);
@@ -1288,7 +1288,7 @@ export default function PortfolioViewerOverlay({
       isEndVideoPinnedRef.current = false;
       setIsEndVideoPinned(false);
     };
-  }, [mounted, hasEndVideo, isMax1200, displayIndex]);
+  }, [mounted, hasEndVideo, displayIndex]);
 
   if (!mounted) return null;
 
@@ -1518,23 +1518,8 @@ export default function PortfolioViewerOverlay({
             );
           })}
 
-          {isMax1200 && hasEndVideo ? (
-            <>
-              <section className={styles.endVideoBlockMobile}>
-                <div className={`${styles.media} ${styles.endVideoMedia}`}>
-                  <div className={styles.mediaInner}>
-                    <StaticProjectMedia
-                      item={{
-                        mediaType: "video",
-                        videoEmbedCode: active.endVideoEmbedCode,
-                      }}
-                      title={activeTitle}
-                      loading="eager"
-                    />
-                  </div>
-                </div>
-              </section>
-            </>
+          {hasEndVideo ? (
+            <div className={styles.endVideoScrollGap} aria-hidden="true" />
           ) : null}
 
           {isMax1200 && !hasEndVideo && (
@@ -1544,7 +1529,7 @@ export default function PortfolioViewerOverlay({
         </div>
       </div>
 
-      {hasEndVideo && !isMax1200 ? (
+      {hasEndVideo ? (
         <section
           className={`${styles.endVideoBlock} ${
             isEndVideoInteractive ? styles.endVideoBlockInteractive : ""
