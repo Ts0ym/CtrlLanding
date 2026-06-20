@@ -276,7 +276,7 @@
   bottom: var(--dock-bottom);
   width: calc(var(--col-split) - var(--pad) - 1.8125rem);
   max-width: clamp(24rem, 22vw, 36rem);
-  font-family: var(--font-cormorant), var(--font-noto-jp), var(--font-noto-sc),
+  font-family: var(--font-cormorant), var(--font-noto-sc), var(--font-noto-jp),
     serif;
   z-index: 11;
 

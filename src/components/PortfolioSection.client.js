@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import pageStyles from "../app/page.module.scss";
 import styles from "./PortfolioSection.module.scss";
 import PortfolioCard from "./PortfolioCard";
-import PortfolioViewerOverlay from "./PortfolioViewerOverlay.client";
 import {
   DEFAULT_LANGUAGE,
   LANGUAGE_STORAGE_KEY,
@@ -21,6 +21,10 @@ import {
 gsap.registerPlugin(ScrollSmoother, ScrollTrigger);
 
 const PORTFOLIO_VIEWER_HISTORY_KEY = "__portfolioViewer";
+const PortfolioViewerOverlay = dynamic(
+  () => import("./PortfolioViewerOverlay.client"),
+  { ssr: false },
+);
 
 export default function PortfolioSection({ cards }) {
   const [activeIndex, setActiveIndex] = useState(null);

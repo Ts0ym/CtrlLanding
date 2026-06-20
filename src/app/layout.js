@@ -40,14 +40,14 @@ const cormorant = localFont({
 const notoJp = Noto_Sans_JP({
   variable: "--font-noto-jp",
   subsets: ["japanese"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400"],
   display: "swap",
 });
 
 const notoSc = Noto_Sans_SC({
   variable: "--font-noto-sc",
   subsets: ["chinese-simplified"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400"],
   display: "swap",
 });
 
