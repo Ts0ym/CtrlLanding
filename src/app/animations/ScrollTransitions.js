@@ -50,6 +50,8 @@ export default function ScrollTransitions() {
     let tl;
     let tickerFn;
     let sectionSnapTrigger;
+    let blockJumpTween;
+    let blockJumpTriggers = [];
     let sectionSnapPoints = [];
 
     const aboutEarly = document.querySelector('[data-scroll="about"]');
@@ -285,6 +287,109 @@ export default function ScrollTransitions() {
       const contactSection = document.querySelector("#contact");
       const stageTrigger = tl.scrollTrigger;
 
+      const killBlockJumpTriggers = () => {
+        blockJumpTween?.kill();
+        blockJumpTween = null;
+        blockJumpTriggers.forEach((trigger) => trigger.kill());
+        blockJumpTriggers = [];
+      };
+
+      const createDesktopBlockJumps = () => {
+        if (!enableScrollSnap || !stageTrigger || !workSection) return;
+
+        const getSmoother = () => ScrollSmoother.get?.();
+        const getScrollTop = () =>
+          getSmoother()?.scrollTop?.() ?? window.scrollY ?? 0;
+        const setScrollTop = (value) => {
+          const smoother = getSmoother();
+
+          if (smoother?.scrollTop) {
+            smoother.scrollTop(value);
+          } else {
+            window.scrollTo(0, value);
+          }
+        };
+        const getElementTop = (element) =>
+          element.getBoundingClientRect().top + getScrollTop();
+        const isSuppressed = () => {
+          const now = window.performance?.now?.() ?? Date.now();
+          const suppressedUntil = window.__suppressStageSnapUntil ?? 0;
+
+          return now < suppressedUntil;
+        };
+        const jumpToSection = (targetSection) => {
+          if (
+            !targetSection ||
+            blockJumpTween ||
+            isSuppressed() ||
+            document.body.hasAttribute("data-portfolio-viewer")
+          ) {
+            return;
+          }
+
+          const current = getScrollTop();
+          const maxScroll = ScrollTrigger.maxScroll(window);
+          const target = gsap.utils.clamp(0, maxScroll, getElementTop(targetSection));
+
+          if (target <= current + 24) return;
+
+          const proxy = { scroll: current };
+          const duration = 0.8;
+          window.__suppressStageSnapUntil =
+            (window.performance?.now?.() ?? Date.now()) + duration * 1000 + 250;
+
+          blockJumpTween = gsap.to(proxy, {
+            scroll: target,
+            duration,
+            ease: "power2.out",
+            overwrite: true,
+            onUpdate: () => {
+              setScrollTop(proxy.scroll);
+              ScrollTrigger.update();
+            },
+            onComplete: () => {
+              blockJumpTween = null;
+              window.__syncHeaderState?.();
+            },
+            onInterrupt: () => {
+              blockJumpTween = null;
+            },
+          });
+        };
+
+        killBlockJumpTriggers();
+
+        const triggerOffset = () => Math.max(4, window.innerHeight * 0.1);
+
+        blockJumpTriggers.push(
+          ScrollTrigger.create({
+            id: "desktop-block-jump-stage-work",
+            trigger: document.body,
+            start: () => stageTrigger.end + triggerOffset(),
+            end: () => stageTrigger.end + Math.max(4, window.innerHeight * 0.5),
+            onEnter: (self) => {
+              if (self.direction > 0) jumpToSection(workSection);
+            },
+            invalidateOnRefresh: true,
+          }),
+        );
+
+        if (contactSection) {
+          blockJumpTriggers.push(
+            ScrollTrigger.create({
+              id: "desktop-block-jump-work-contact",
+              trigger: workSection,
+              start: "bottom 90%",
+              end: () => `+=${Math.max(4, window.innerHeight * 0.5)}`,
+              onEnter: (self) => {
+                if (self.direction > 0) jumpToSection(contactSection);
+              },
+              invalidateOnRefresh: true,
+            }),
+          );
+        }
+      };
+
       if (enableScrollSnap && workSection && contactSection && stageTrigger) {
         const updateSectionSnapPoints = () => {
           const start = stageTrigger.end;
@@ -375,6 +480,8 @@ export default function ScrollTransitions() {
         });
         updateSectionSnapPoints();
       }
+
+      createDesktopBlockJumps();
     };
 
     const onDone = () => init();
@@ -384,6 +491,8 @@ export default function ScrollTransitions() {
     return () => {
       delete window.__syncHeaderState;
       if (tickerFn) gsap.ticker.remove(tickerFn);
+      blockJumpTween?.kill();
+      blockJumpTriggers.forEach((trigger) => trigger.kill());
       sectionSnapTrigger?.kill();
       tl?.scrollTrigger?.kill();
       tl?.kill();
