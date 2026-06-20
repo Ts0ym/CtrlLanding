@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 
 const TIME_SCALE = 1; 
+const INTRO_FONT_WAIT_MS = 450;
 
 export default function IntroAnimation() {
   const prevOverflowRef = useRef("");
@@ -38,8 +39,14 @@ export default function IntroAnimation() {
     }
 
     let tl;
+    let fontWaitTimeout = 0;
+    let introStarted = false;
+    let cancelled = false;
 
     const start = () => {
+      if (introStarted || cancelled) return;
+      introStarted = true;
+
       const logo = document.querySelector('[data-anim="logo"]');
       const frameLines = gsap.utils.toArray('[data-anim="line"]');
       const heroLines = gsap.utils.toArray('[data-anim="hero-headline-line"]');
@@ -106,8 +113,14 @@ export default function IntroAnimation() {
     };
 
     document.body.setAttribute("data-intro-active", "true");
-    (document.fonts?.ready ?? Promise.resolve()).then(start);
+    fontWaitTimeout = window.setTimeout(start, INTRO_FONT_WAIT_MS);
+    (document.fonts?.ready ?? Promise.resolve()).then(() => {
+      window.clearTimeout(fontWaitTimeout);
+      start();
+    });
     return () => {
+      cancelled = true;
+      window.clearTimeout(fontWaitTimeout);
       tl?.kill();
       document.body.style.overflow = prevOverflowRef.current || "";
       document.documentElement.style.overflow = prevHtmlOverflowRef.current || "";

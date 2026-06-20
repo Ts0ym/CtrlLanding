@@ -11,11 +11,13 @@ import AppShell from "../components/AppShell.client";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const cormorant = localFont({
@@ -39,12 +41,14 @@ const notoJp = Noto_Sans_JP({
   variable: "--font-noto-jp",
   subsets: ["japanese"],
   weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const notoSc = Noto_Sans_SC({
   variable: "--font-noto-sc",
   subsets: ["chinese-simplified"],
   weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata = {

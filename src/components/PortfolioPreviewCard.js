@@ -20,6 +20,8 @@ export default function PortfolioPreviewCard({
           className={styles.image}
           src={getAssetUrl(card.imageSrc)}
           alt=""
+          loading="lazy"
+          decoding="async"
         />
       </div>
       <div className={styles.meta}>

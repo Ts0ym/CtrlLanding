@@ -37,6 +37,8 @@ export default function PortfolioCard({ card, language = "ru", onClick }) {
             className={styles.image}
             src={getAssetUrl(card.imageSrc)}
             alt=""
+            loading="lazy"
+            decoding="async"
           />
         </div>
         <div className={styles.meta}>
