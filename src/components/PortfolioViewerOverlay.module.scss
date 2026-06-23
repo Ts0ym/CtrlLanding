@@ -163,7 +163,7 @@
 
 .blockDividerLineLeft {
   left: 0;
-  width: calc(33.3333vw - var(--pad) - 0.3125rem - 0.3em);
+  width: calc(33.3333% - 0.6458rem);
 
   @media (max-width: 1200px) {
     width: 100%;
@@ -171,7 +171,9 @@
 }
 
 .blockDividerLineRight {
-  left: calc(33.3333vw + 0.6875rem - var(--pad) - 0.3em);
+  left: calc(
+    var(--viewer-right-left) - var(--pad) + var(--viewer-line-gap) - 0.35em
+  );
   right: 0;
 
   @media (max-width: 1200px) {
