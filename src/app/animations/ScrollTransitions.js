@@ -317,9 +317,9 @@ export default function ScrollTransitions() {
 
           return now < suppressedUntil;
         };
-        const jumpToSection = (targetSection) => {
+        const jumpToScroll = (targetScroll, direction = 0) => {
           if (
-            !targetSection ||
+            !Number.isFinite(targetScroll) ||
             blockJumpTween ||
             isSuppressed() ||
             document.body.hasAttribute("data-portfolio-viewer")
@@ -329,9 +329,11 @@ export default function ScrollTransitions() {
 
           const current = getScrollTop();
           const maxScroll = ScrollTrigger.maxScroll(window);
-          const target = gsap.utils.clamp(0, maxScroll, getElementTop(targetSection));
+          const target = gsap.utils.clamp(0, maxScroll, targetScroll);
 
-          if (target <= current + 24) return;
+          if (direction > 0 && target <= current + 24) return;
+          if (direction < 0 && target >= current - 24) return;
+          if (direction === 0 && Math.abs(target - current) <= 24) return;
 
           const proxy = { scroll: current };
           const duration = 0.8;
@@ -356,6 +358,13 @@ export default function ScrollTransitions() {
             },
           });
         };
+        const jumpToSection = (targetSection, direction) => {
+          if (!targetSection) return;
+          jumpToScroll(getElementTop(targetSection), direction);
+        };
+        const jumpToAboutStage = () => {
+          jumpToScroll(stageTrigger.end - 1, -1);
+        };
 
         killBlockJumpTriggers();
 
@@ -368,7 +377,10 @@ export default function ScrollTransitions() {
             start: () => stageTrigger.end + triggerOffset(),
             end: () => stageTrigger.end + Math.max(4, window.innerHeight * 0.5),
             onEnter: (self) => {
-              if (self.direction > 0) jumpToSection(workSection);
+              if (self.direction > 0) jumpToSection(workSection, 1);
+            },
+            onEnterBack: (self) => {
+              if (self.direction < 0) jumpToAboutStage();
             },
             invalidateOnRefresh: true,
           }),
@@ -382,7 +394,10 @@ export default function ScrollTransitions() {
               start: "bottom 90%",
               end: () => `+=${Math.max(4, window.innerHeight * 0.5)}`,
               onEnter: (self) => {
-                if (self.direction > 0) jumpToSection(contactSection);
+                if (self.direction > 0) jumpToSection(contactSection, 1);
+              },
+              onEnterBack: (self) => {
+                if (self.direction < 0) jumpToSection(workSection, -1);
               },
               invalidateOnRefresh: true,
             }),
@@ -390,7 +405,7 @@ export default function ScrollTransitions() {
         }
       };
 
-      if (enableScrollSnap && workSection && contactSection && stageTrigger) {
+      if (enableScrollSnap && workSection && stageTrigger) {
         const updateSectionSnapPoints = () => {
           const start = stageTrigger.end;
           const end = ScrollTrigger.maxScroll(window);
@@ -403,19 +418,12 @@ export default function ScrollTransitions() {
 
           const workSnapBefore = Math.max(260, window.innerHeight * 0.9);
           const workSnapAfter = Math.max(120, window.innerHeight * 0.25);
-          const contactSnapBefore = Math.max(220, window.innerHeight * 0.7);
-          const contactSnapAfter = Math.max(120, window.innerHeight * 0.25);
 
           sectionSnapPoints = [
             {
               scroll: clampPoint(getTop(workSection)),
               beforeLimit: workSnapBefore,
               afterLimit: workSnapAfter,
-            },
-            {
-              scroll: clampPoint(getTop(contactSection)),
-              beforeLimit: contactSnapBefore,
-              afterLimit: contactSnapAfter,
             },
           ]
             .filter(
